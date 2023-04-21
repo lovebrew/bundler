@@ -1,34 +1,16 @@
-import base64
 import subprocess
+import tempfile
 from pathlib import Path
-from zipfile import ZipFile
-
-from PIL import Image
-
-from modes import Mode
 
 
 class Console:
     BIN_PATH = Path().cwd() / "bin"
-    TEMP_DIR = Path().home() / ".lovebrew/build"
 
     def __init__(self, mode: str, metadata: dict) -> None:
         for key, value in metadata.items():
             self.__dict__.update({key: value})
 
-        self.type = str(mode)
-        self.build_path = Console.TEMP_DIR / self.type / f"{self.title}_{self.author}"
-
-        self.build_path.mkdir(exist_ok=True, parents=True)
-
-        if self.icon:
-            extension = self.icon_extension()
-            self.icon_path = self.build_path / f"icon.{extension}"
-
-            self.icon.save(self.icon_path)
-
-        self.game_zip = self.build_path / f"{self.title}.zip"
-        self.game.save(self.game_zip)
+        self.type = mode
 
     def run_command(self, command: str, args: dict) -> str:
         try:
@@ -41,8 +23,15 @@ class Console:
 
         return str()
 
-    def build(self) -> None:
-        raise NotImplementedError
+    def build(self, build_dir: Path) -> None:
+        if self.icon:
+            extension = self.icon_extension()
+            self.icon_path = build_dir / f"icon.{extension}"
+
+            self.icon.save(self.icon_path)
+
+        self.game_zip = build_dir / f"{self.title}.zip"
+        self.game.save(self.game_zip)
 
     def game_data(self) -> Path:
         return self.game_zip
@@ -63,10 +52,10 @@ class Console:
     def binary_path(self) -> Path:
         return self.path_to("lovepotion.elf")
 
-    def final_binary_path(self) -> Path:
+    def final_binary_path(self, build_dir: Path) -> Path:
         extension = self.binary_extension()
 
-        path = self.build_path / f"{self.title}.{extension}"
+        path = build_dir / f"{self.title}.{extension}"
 
         if not path.exists():
             raise FileNotFoundError

@@ -1,11 +1,11 @@
 from enum import Enum
 
+from consoles.cafe import Cafe
+from consoles.ctr import Ctr
+from consoles.hac import Hac
 
-class Mode(str, Enum):
-    CTR = "ctr"
-    HAC = "hac"
-    CAFE = "cafe"
 
-    @staticmethod
-    def contains(__key: str) -> bool:
-        return __key == "ctr" or __key == "hac" or __key == "cafe"
+class Mode(Enum):
+    CTR = Ctr
+    HAC = Hac
+    CAFE = Cafe

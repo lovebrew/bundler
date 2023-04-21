@@ -1,20 +1,23 @@
+from pathlib import Path
+
 from console import Console
-from modes import Mode
 
 
 class Hac(Console):
     BinTool = 'elf2nro "{elf}" "{output}.nro" --nacp="{nacp}" --icon="{icon}" --romfsdir="{romfs}"'
     NacpTool = 'nacptool --create "{name}" "{author}" "{version}" "{out}.nacp"'
 
-    def __init__(self, type: Mode, metadata: dict) -> None:
+    def __init__(self, type: str, metadata: dict) -> None:
         super().__init__(type, metadata)
 
-    def build(self) -> str:
+    def build(self, build_dir: Path) -> str:
+        super().build(build_dir)
+
         args = {
             "name": self.title,
             "author": self.author,
             "version": self.version,
-            "out": self.build_path / self.title,
+            "out": build_dir / self.title,
         }
 
         error = self.run_command(Hac.NacpTool, args)
@@ -23,11 +26,11 @@ class Hac(Console):
             return error
 
         args = {
-            "nacp": self.build_path / f"{self.title}.nacp",
+            "nacp": build_dir / f"{self.title}.nacp",
             "icon": self.icon_file(),
             "romfs": self.path_to("shaders"),
             "elf": self.binary_path(),
-            "output": self.build_path / self.title,
+            "output": build_dir / self.title,
         }
 
         error = self.run_command(Hac.BinTool, args)
@@ -35,7 +38,7 @@ class Hac(Console):
         if error != "":
             return error
 
-        with open(self.final_binary_path(), "ab") as executable:
+        with open(self.final_binary_path(build_dir), "ab") as executable:
             executable.write(self.game_zip.read_bytes())
 
         return str()

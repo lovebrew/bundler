@@ -1,18 +1,21 @@
+from pathlib import Path
+
 from console import Console
-from modes import Mode
 
 
 class Cafe(Console):
     Elf2Rpl = 'elf2rpl "{elf}" "{output}.rpx"'
     BinTool = 'wuhbtool "{rpx}" "{output}.wuhb" --content="{romfs}" --name="{name}" --short-name="{short_name}" --author="{author}" --icon="{icon}"'
 
-    def __init__(self, type: Mode, metadata: dict) -> None:
+    def __init__(self, type: str, metadata: dict) -> None:
         super().__init__(type, metadata)
 
-    def build(self) -> str:
+    def build(self, build_dir: Path) -> str:
+        super().build(build_dir)
+
         args = {
             "elf": self.binary_path(),
-            "output": self.build_path / self.title,
+            "output": build_dir / self.title,
         }
 
         error = self.run_command(Cafe.Elf2Rpl, args)
@@ -21,8 +24,8 @@ class Cafe(Console):
             return error
 
         args = {
-            "rpx": self.build_path / f"{self.title}.rpx",
-            "output": self.build_path / self.title,
+            "rpx": build_dir / f"{self.title}.rpx",
+            "output": build_dir / self.title,
             "romfs": self.path_to("shaders"),
             "name": self.description,
             "short_name": self.title,
@@ -35,7 +38,7 @@ class Cafe(Console):
         if error != "":
             return error
 
-        with open(self.final_binary_path(), "ab") as executable:
+        with open(self.final_binary_path(build_dir), "ab") as executable:
             executable.write(self.game_zip.read_bytes())
 
         return str()

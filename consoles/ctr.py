@@ -1,8 +1,8 @@
 import shutil
 import zipfile
+from pathlib import Path
 
 from console import Console
-from modes import Mode
 
 
 class Ctr(Console):
@@ -14,12 +14,12 @@ class Ctr(Console):
     Textures = [".png", ".jpg", ".jpeg"]
     Fonts = [".ttf", ".otf"]
 
-    def __init__(self, type: Mode, metadata: dict) -> None:
+    def __init__(self, type: str, metadata: dict) -> None:
         super().__init__(type, metadata)
 
-    def convert_files(self) -> str:
+    def convert_files(self, build_path: Path) -> str:
         # extract the game zip file first
-        source_path = self.build_path / "source"
+        source_path = build_path / "source"
         with zipfile.ZipFile(self.game_zip, "r") as zip:
             zip.extractall(source_path)
 
@@ -42,18 +42,21 @@ class Ctr(Console):
             if error:
                 return error
 
-        shutil.make_archive(self.game_zip.with_suffix(""), "zip", source_path)
-        shutil.rmtree(source_path)
+        with zipfile.ZipFile(self.game_zip, "w") as zip:
+            for filepath in source_path.rglob("*"):
+                zip.write(filepath, filepath.relative_to(source_path))
 
         return str()
 
-    def build(self) -> str:
+    def build(self, build_dir: Path) -> str:
+        super().build(build_dir)
+
         args = {
             "name": self.title,
             "desc": f"{self.description} • {self.version}",
             "author": self.author,
             "icon": self.icon_file(),
-            "out": self.build_path / self.title,
+            "out": build_dir / self.title,
         }
 
         error = self.run_command(Ctr.SmdhTool, args)
@@ -63,8 +66,8 @@ class Ctr(Console):
 
         args = {
             "elf": self.binary_path(),
-            "output": self.build_path / self.title,
-            "smdh": f"{self.build_path / self.title}",
+            "output": build_dir / self.title,
+            "smdh": f"{build_dir / self.title}",
         }
 
         error = self.run_command(Ctr.BinTool, args)
@@ -72,12 +75,12 @@ class Ctr(Console):
         if error != "":
             return error
 
-        error = self.convert_files()
+        error = self.convert_files(build_dir)
 
         if error != "":
             return error
 
-        with open(self.final_binary_path(), "ab") as executable:
+        with open(self.final_binary_path(build_dir), "ab") as executable:
             executable.write(self.game_zip.read_bytes())
 
         return str()

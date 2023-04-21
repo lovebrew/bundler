@@ -1,10 +1,9 @@
-import os
+import tempfile
+import zipfile
+from pathlib import Path
 
 from flask import Flask, request, send_file
 
-from consoles.cafe import Cafe
-from consoles.ctr import Ctr
-from consoles.hac import Hac
 from modes import Mode
 
 app = Flask(__name__)
@@ -15,8 +14,6 @@ app = Flask(__name__)
 def show_index() -> str:
     return "Hello World!"
 
-
-CLASSES = {"ctr": Ctr, "hac": Hac, "cafe": Cafe}
 
 metadata = {
     "title": "SuperGame",
@@ -37,9 +34,6 @@ def data():
     if len(metadata["mode"]) == 0:
         return "Error: No mode was specified"
 
-    if not Mode.contains(metadata["mode"]):
-        return "Error: No valid mode was specified"
-
     if not "game" in request.files:
         return "Error: No valid game data sent"
 
@@ -48,15 +42,27 @@ def data():
     if "icon" in request.files:
         metadata["icon"] = request.files["icon"]
 
-    mode = metadata["mode"]
-    console_data = CLASSES[mode](mode, metadata)
+    mode = metadata["mode"].upper()
+    console_data = None
+    file_data = None
 
-    error = console_data.build()
+    with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as dir:
+        try:
+            console_data = Mode[mode].value(metadata["mode"], metadata)
 
-    if error:
-        return f"Error building {mode}: {error}"
+            build_dir = Path(dir)
+            error = console_data.build(build_dir)
 
-    return send_file(console_data.final_binary_path())
+            if error:
+                return f"Error building {mode}: {error}"
+
+            output_file = console_data.final_binary_path(build_dir)
+
+            file_data = output_file.read_bytes()
+        except Exception as e:
+            return str(e)
+
+    return file_data
 
 
 if __name__ == "__main__":
