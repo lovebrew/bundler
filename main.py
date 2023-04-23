@@ -54,16 +54,18 @@ def data():
             error = console_data.build(build_dir)
 
             if error:
-                return f"Error building {mode}: {error}"
+                return f"Error building {mode}: {error}", 400
 
             output_file = console_data.final_binary_path(build_dir)
 
             file_data = output_file.read_bytes()
         except Exception as e:
-            return str(e)
+            return f"An exception occurred: {e}", 400
 
     return file_data
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", threaded=True)
+    from waitress import serve
+
+    serve(app, host="0.0.0.0", port=5000)

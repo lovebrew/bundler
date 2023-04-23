@@ -1,1 +1,4 @@
 flask
+waitress
+pyopenssl
+requests
