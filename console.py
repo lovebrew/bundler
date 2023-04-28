@@ -1,5 +1,4 @@
 import subprocess
-import tempfile
 from pathlib import Path
 
 
@@ -50,7 +49,7 @@ class Console:
         return self.path_to(f"icon.{extension}")
 
     def binary_path(self) -> Path:
-        return self.path_to("lovepotion.elf")
+        return self.path_to(f"lovepotion_v{self.app_version}.elf")
 
     def final_binary_path(self, build_dir: Path) -> Path:
         extension = self.binary_extension()

@@ -23,6 +23,7 @@ metadata = {
     "icon": "",
     "game": "",
     "mode": "",
+    "app_version": 2,
 }
 
 
