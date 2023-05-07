@@ -69,6 +69,10 @@ class Ctr(Console):
             "smdh": f"{build_dir / self.title}",
         }
 
+        if int(self.app_version) < 3:
+            Ctr.BinTool += ' --romfs="{romfs}"'
+            args["romfs"] = self.path_to("graphics.romfs")
+
         error = self.run_command(Ctr.BinTool, args)
 
         if error != "":
