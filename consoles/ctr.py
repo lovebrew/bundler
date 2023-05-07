@@ -1,4 +1,3 @@
-import shutil
 import zipfile
 from pathlib import Path
 
@@ -14,8 +13,8 @@ class Ctr(Console):
     Textures = [".png", ".jpg", ".jpeg"]
     Fonts = [".ttf", ".otf"]
 
-    def __init__(self, type: str, metadata: dict) -> None:
-        super().__init__(type, metadata)
+    def __init__(self, metadata: dict) -> None:
+        super().__init__(metadata)
 
     def convert_files(self, build_path: Path) -> str:
         # extract the game zip file first

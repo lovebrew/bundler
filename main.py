@@ -49,7 +49,7 @@ def data():
 
     with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as dir:
         try:
-            console_data = Mode[mode].value(metadata["mode"], metadata)
+            console_data = Mode[mode].value(metadata)
 
             build_dir = Path(dir)
             error = console_data.build(build_dir)
@@ -63,7 +63,7 @@ def data():
         except Exception as e:
             return f"An exception occurred: {e}", 400
 
-    return file_data
+    return file_data, 200
 
 
 if __name__ == "__main__":

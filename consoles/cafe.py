@@ -7,8 +7,8 @@ class Cafe(Console):
     Elf2Rpl = 'elf2rpl "{elf}" "{output}.rpx"'
     BinTool = 'wuhbtool "{rpx}" "{output}.wuhb" --content="{romfs}" --name="{name}" --short-name="{short_name}" --author="{author}" --icon="{icon}"'
 
-    def __init__(self, type: str, metadata: dict) -> None:
-        super().__init__(type, metadata)
+    def __init__(self, metadata: dict) -> None:
+        super().__init__(metadata)
 
     def build(self, build_dir: Path) -> str:
         super().build(build_dir)

@@ -7,8 +7,8 @@ class Hac(Console):
     BinTool = 'elf2nro "{elf}" "{output}.nro" --nacp="{nacp}" --icon="{icon}" --romfsdir="{romfs}"'
     NacpTool = 'nacptool --create "{name}" "{author}" "{version}" "{out}.nacp"'
 
-    def __init__(self, type: str, metadata: dict) -> None:
-        super().__init__(type, metadata)
+    def __init__(self, metadata: dict) -> None:
+        super().__init__(metadata)
 
     def build(self, build_dir: Path) -> str:
         super().build(build_dir)

@@ -1,3 +1,4 @@
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -5,15 +6,16 @@ from pathlib import Path
 class Console:
     BIN_PATH = Path().cwd() / "bin"
 
-    def __init__(self, mode: str, metadata: dict) -> None:
+    def __init__(self, metadata: dict) -> None:
         for key, value in metadata.items():
             self.__dict__.update({key: value})
 
-        self.type = mode
+        self.type = metadata["mode"]
 
     def run_command(self, command: str, args: dict) -> str:
         try:
-            completed_process = subprocess.run(command.format(**args))
+            __args = shlex.split(command.format(**args))
+            completed_process = subprocess.run(__args)
 
             if completed_process.returncode != 0:
                 return completed_process.stderr
