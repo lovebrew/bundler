@@ -5,7 +5,7 @@ from console import Console
 
 class Cafe(Console):
     Elf2Rpl = 'elf2rpl "{elf}" "{output}.rpx"'
-    BinTool = 'wuhbtool "{rpx}" "{output}.wuhb" --content="{romfs}" --name="{name}" --short-name="{short_name}" --author="{author}" --icon="{icon}"'
+    BinTool = 'wuhbtool "{rpx}" "{output}.wuhb" --content="{romfs}" --name="{short_name}" --short-name="{short_name}" --author="{author}" --icon="{icon}"'
 
     def __init__(self, metadata: dict) -> None:
         super().__init__(metadata)
@@ -27,7 +27,6 @@ class Cafe(Console):
             "rpx": build_dir / f"{self.title}.rpx",
             "output": build_dir / self.title,
             "romfs": self.path_to("shaders"),
-            "name": self.description,
             "short_name": self.title,
             "author": self.author,
             "icon": self.icon_file(),

@@ -28,7 +28,7 @@ class Hac(Console):
         args = {
             "nacp": build_dir / f"{self.title}.nacp",
             "icon": self.icon_file(),
-            "romfs": self.path_to("shaders"),
+            "romfs": self.path_to("files.romfs"),
             "elf": self.binary_path(),
             "output": build_dir / self.title,
         }
