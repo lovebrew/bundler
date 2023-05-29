@@ -1,3 +1,5 @@
+import errno
+import os
 import shlex
 import subprocess
 from pathlib import Path
@@ -59,7 +61,7 @@ class Console:
         path = build_dir / f"{self.title}.{extension}"
 
         if not path.exists():
-            raise FileNotFoundError
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
         return path
 
@@ -67,6 +69,6 @@ class Console:
         path = f"{Console.BIN_PATH}/{self.type}/{item}"
 
         if not Path(path).exists():
-            raise FileNotFoundError
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
 
         return path
