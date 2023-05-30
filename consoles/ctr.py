@@ -71,7 +71,7 @@ class Ctr(Console):
 
         if int(self.app_version) < 3:
             Ctr.BinTool += ' --romfs="{romfs}"'
-            args["romfs"] = self.path_to("graphics.romfs")
+            args["romfs"] = self.path_to("files.romfs")
 
         error = self.run_command(Ctr.BinTool, args)
 

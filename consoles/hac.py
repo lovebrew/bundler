@@ -4,7 +4,7 @@ from console import Console
 
 
 class Hac(Console):
-    BinTool = 'elf2nro "{elf}" "{output}.nro" --nacp="{nacp}" --icon="{icon}" --romfsdir="{romfs}"'
+    BinTool = 'elf2nro "{elf}" "{output}.nro" --nacp="{nacp}" --icon="{icon}" --romfs="{romfs}"'
     NacpTool = 'nacptool --create "{name}" "{author}" "{version}" "{out}.nacp"'
 
     def __init__(self, metadata: dict) -> None:
