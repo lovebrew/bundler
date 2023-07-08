@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 from console import Console
@@ -12,6 +13,7 @@ class Cafe(Console):
 
     def build(self, build_dir: Path) -> str:
         super().build(build_dir)
+        shutil.copy(self.game_zip, self.path_to("content"))
 
         args = {
             "elf": self.binary_path(),
@@ -26,8 +28,8 @@ class Cafe(Console):
         args = {
             "rpx": build_dir / f"{self.title}.rpx",
             "output": build_dir / self.title,
-            "romfs": self.path_to("shaders"),
-            "name": self.description,
+            "romfs": self.path_to("content"),
+            "name": self.title,
             "short_name": self.title,
             "author": self.author,
             "icon": self.icon_file(),
@@ -38,8 +40,7 @@ class Cafe(Console):
         if error != "":
             return error
 
-        with open(self.final_binary_path(build_dir), "ab") as executable:
-            executable.write(self.game_zip.read_bytes())
+        Path(self.path_to("content/game.zip")).unlink()
 
         return str()
 

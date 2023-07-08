@@ -69,11 +69,12 @@ class Ctr(Console):
             "smdh": f"{build_dir / self.title}",
         }
 
+        command = Ctr.BinTool
         if int(self.app_version) < 3:
-            Ctr.BinTool += ' --romfs="{romfs}"'
-            args["romfs"] = self.path_to("graphics.romfs")
+            command += ' --romfs="{romfs}"'
+            args["romfs"] = self.path_to("files.romfs")
 
-        error = self.run_command(Ctr.BinTool, args)
+        error = self.run_command(command, args)
 
         if error != "":
             return error
@@ -84,7 +85,8 @@ class Ctr(Console):
             return error
 
         with open(self.final_binary_path(build_dir), "ab") as executable:
-            executable.write(self.game_zip.read_bytes())
+            with open(self.game_zip, "rb") as game_data:
+                executable.write(game_data.read())
 
         return str()
 

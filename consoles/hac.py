@@ -4,7 +4,7 @@ from console import Console
 
 
 class Hac(Console):
-    BinTool = 'elf2nro "{elf}" "{output}.nro" --nacp="{nacp}" --icon="{icon}" --romfsdir="{romfs}"'
+    BinTool = 'elf2nro "{elf}" "{output}.nro" --nacp="{nacp}" --icon="{icon}" --romfs="{romfs}"'
     NacpTool = 'nacptool --create "{name}" "{author}" "{version}" "{out}.nacp"'
 
     def __init__(self, metadata: dict) -> None:
@@ -28,7 +28,7 @@ class Hac(Console):
         args = {
             "nacp": build_dir / f"{self.title}.nacp",
             "icon": self.icon_file(),
-            "romfs": self.path_to("shaders"),
+            "romfs": self.path_to("files.romfs"),
             "elf": self.binary_path(),
             "output": build_dir / self.title,
         }

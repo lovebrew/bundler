@@ -1,6 +1,7 @@
 import tempfile
 import zipfile
 from pathlib import Path
+import traceback
 
 from flask import Flask, request, send_file
 
@@ -33,10 +34,10 @@ def data():
     metadata.update({k: v for k, v in request.args.items() if k in metadata})
 
     if len(metadata["mode"]) == 0:
-        return "Error: No mode was specified"
+        return "Error: No mode was specified", 400
 
     if not "game" in request.files:
-        return "Error: No valid game data sent"
+        return "Error: No valid game data sent", 400
 
     metadata["game"] = request.files["game"]
 
@@ -59,9 +60,13 @@ def data():
 
             output_file = console_data.final_binary_path(build_dir)
 
-            file_data = output_file.read_bytes()
+            with open(output_file, "rb") as file:
+                file_data = file.read()
+                
+        except KeyError as e:
+            return f"target '{mode}' is not valid", 400
         except Exception as e:
-            return f"An exception occurred: {e}", 400
+            return f"An exception occurred: {traceback.format_exc()}", 400
 
     return file_data, 200
 
