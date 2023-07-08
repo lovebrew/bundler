@@ -59,10 +59,8 @@ def data():
                 return f"Error building {mode}: {error}", 400
 
             output_file = console_data.final_binary_path(build_dir)
-
             with open(output_file, "rb") as file:
                 file_data = file.read()
-                
         except KeyError as e:
             return f"target '{mode}' is not valid", 400
         except Exception as e:

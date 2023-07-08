@@ -17,14 +17,15 @@ class Console:
     def run_command(self, command: str, args: dict) -> str:
         try:
             __args = shlex.split(command.format(**args))
-            subprocess.run(__args, check=True)
+            completed_process = subprocess.run(__args, check=True)
+
+            if completed_process.returncode != 0:
+                return completed_process.stderr
         except KeyError as e:
             return f"run_command: failed to lookup arg for '{e}'"
         except subprocess.CalledProcessError as e:
             return f"run_command: {e} ({e.stderr.decode('UTF-8').strip()})"
         except FileNotFoundError as e:
-            return f"run_command: {e}"
-        except Exception as e:
             return f"run_command: {e}"
 
         return str()

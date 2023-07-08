@@ -6,7 +6,7 @@ from console import Console
 
 class Cafe(Console):
     Elf2Rpl = 'elf2rpl "{elf}" "{output}.rpx"'
-    BinTool = 'wuhbtool "{rpx}" "{output}.wuhb" --content="{romfs}" --name="{name}" --short-name="{short_name}" --author="{author}" --icon="{icon}"'
+    BinTool = 'wuhbtool "{rpx}" "{output}.wuhb" --content="{romfs}" --name="{short_name}" --short-name="{short_name}" --author="{author}" --icon="{icon}"'
 
     def __init__(self, metadata: dict) -> None:
         super().__init__(metadata)
