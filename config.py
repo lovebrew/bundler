@@ -4,6 +4,8 @@ import tomllib
 
 
 class Config:
+    CompatibleVersions = ["0.8.0"]
+
     def __init__(self, file_data: str) -> None:
         self.data = dict()
 

@@ -12,7 +12,6 @@ class Cafe(Console):
         super().__init__(metadata)
 
     def build(self, build_dir: Path) -> str:
-        super().build(build_dir)
         shutil.copy(self.game_zip, self.path_to("content"))
 
         args = {

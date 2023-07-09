@@ -11,8 +11,6 @@ class Hac(Console):
         super().__init__(metadata)
 
     def build(self, build_dir: Path) -> str:
-        super().build(build_dir)
-
         args = {
             "name": self.title,
             "author": self.author,

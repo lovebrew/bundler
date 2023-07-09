@@ -2,3 +2,5 @@ flask
 waitress
 pyopenssl
 requests
+filetype
+semver

@@ -1,0 +1,50 @@
+@font-face {
+  font-family: coolvetica;
+  src: url('/static/fonts/coolvetica.otf');
+}
+
+@media only screen and (max-width: 600px) {
+  :root {
+    --font-size: 1.0rem;
+  }
+
+  .spacer {
+    display: none;
+  }
+
+  footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0;
+  }
+}
+
+@media only screen and (min-width: 600px) {
+  :root {
+    --font-size: 1.25rem;
+  }
+}
+
+footer {
+  width: 100vw;
+  min-height: 16px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+
+  left: 0;
+  bottom: 0;
+  background-color: #212121;
+  text-align: center;
+  color: white;
+  filter: drop-shadow(0px -4px 4px rgba(0, 0, 0, 0.25));
+
+  font-family: coolvetica;
+  font-size: var(--font-size);
+  justify-content: center;
+}
+
+.spacer {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}

@@ -4,13 +4,13 @@
 # [string] @author      : Author of the game, default: 'SuperAuthor'
 # [string] @description : Description of the game, default: 'SuperDescription'
 # [string] @version     : Version of the game in {major}.{minor}.{revision} format, default: '0.1.0'
-# [string] @icon        : Icon path, default: empty string ('')
+# [string] @icons       : Icon paths, defaults: empty string ('')
 [metadata]
 title = "SuperGame"
 author = "SuperAuthor"
 description = "SuperDescription"
 version = "0.1.0"
-icon = ""
+icons = { ctr = "", hac = "", cafe = "" }
 
 ## --- Build Options --- ##
 
@@ -18,9 +18,11 @@ icon = ""
 #
 # [string] @source        : Game source directory; relative to the config
 #                           file. Default: "game".
+# [int]    @app_version   : Version of LÖVE Potion to build for. Default: 2
 [build]
 targets = ["ctr", "hac", "cafe"]
 source = "game"
+app_version = 2
 
 [debug]
 # DO NOT MODIFY #

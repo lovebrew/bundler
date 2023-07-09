@@ -1,0 +1,68 @@
+/* The snackbar - position it at the bottom and in the middle of the screen */
+#snackbar {
+  top: 30px;
+  color: #fff;
+  filter: drop-shadow(8px 4px 4px rgba(0, 0, 0, 0.25));
+  margin: auto;
+  opacity: 0;
+  padding: 16px;
+  z-index: 1;
+  position: absolute;
+  min-width: 250px;
+  text-align: center;
+  transition: opacity 1s 0s ease;
+  border-radius: 4px;
+}
+
+/* Show the snackbar when clicking on a button (class added with JavaScript) */
+#snackbar.show {
+  opacity: 1;
+}
+
+#snackbar.success {
+  background-color: #388E3C;
+}
+
+#snackbar.error {
+  background-color: #D32F2F;
+  animation: 1s ease-in-out 0s 1 wobble;
+}
+
+@keyframes wobble {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70% {
+    transform: translateX(-10px);
+  }
+
+  20%,
+  40%,
+  60% {
+    transform: translateX(10px);
+  }
+
+  80% {
+    transform: translateX(8px);
+  }
+
+  90% {
+    transform: translateX(-8px);
+  }
+}
+
+@keyframes show {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
