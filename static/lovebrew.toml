@@ -1,0 +1,28 @@
+## --- Metadata Options --- ##
+
+# [string] @title       : Name of the game, default: 'SuperGame'.
+# [string] @author      : Author of the game, default: 'SuperAuthor'
+# [string] @description : Description of the game, default: 'SuperDescription'
+# [string] @version     : Version of the game in {major}.{minor}.{revision} format, default: '0.1.0'
+# [string] @icon        : Icon path, default: empty string ('')
+[metadata]
+title = "SuperGame"
+author = "SuperAuthor"
+description = "SuperDescription"
+version = "0.1.0"
+icon = ""
+
+## --- Build Options --- ##
+
+# [array]  @targts        : Target console(s) to build for. Default: ["ctr", "hac", "cafe"].
+#
+# [string] @source        : Game source directory; relative to the config
+#                           file. Default: "game".
+[build]
+targets = ["ctr", "hac", "cafe"]
+source = "game"
+
+[debug]
+# DO NOT MODIFY #
+version = "0.8.0"
+# ------------- #

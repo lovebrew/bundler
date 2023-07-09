@@ -63,7 +63,7 @@ def build_target(target: str, metadata: dict) -> tuple[str, int]:
                 return file.read()
 
         except KeyError:
-            return f"Target '{target}' is not valid", 400
+            return f"{Error.TARGET_NOT_VALID.name} ({target})", 400
         except Exception:
             return f"An exception occurred: {traceback.format_exc()}", 400
 
@@ -101,11 +101,11 @@ def data():
     # set the game data for metadata
     metadata["game"] = archive.read(f"{zip_name}.zip")
 
-    for console in current_config["targets"]:
-        data_or_error, code = build_target(console, metadata)
+    for console in current_config["build"]["targets"]:
+        data_or_error, code = build_target(console.upper(), metadata)
+        print(data_or_error, code)
 
-        if code != 200:
-            return data_or_error, code
+    return "Hello World", 200
 
 
 if __name__ == "__main__":

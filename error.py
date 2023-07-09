@@ -10,6 +10,8 @@ class Error(Enum):
     MISSING_CONFIG_FILE = 2
     # Could not find 'game.zip' in the package
     MISSING_GAME_CONTENT = 3
+    # Target is not valid
+    TARGET_NOT_VALID = 4
 
     def __str__(self):
         return self.name
