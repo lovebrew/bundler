@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function showToastSuccessMessage(text) {
         showToastMessage(text);
+        toast.classList.add("success");
         toast_success.play();
     }
 
@@ -61,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const response = await fetch("/data", { "method": "POST", body });
 
         if (response.status != 200) {
-            showToastErrorMessage(`Failed to upload your game: ${await response.text()}`, true);
+            showToastErrorMessage(`Failed to upload your game: ${await response.text()}`);
             input.value = null;
         } else {
             showToastSuccessMessage("Game packing was successful.");
