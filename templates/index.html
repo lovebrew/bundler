@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>LÖVEBrew: Bundle Your Game</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/index.css') }}">
+    <script src="{{url_for('static', filename='javascript/upload.js')}}"></script>
+</head>
+
+<body>
+    <div class="background"></div>
+    <img class="potion" src="{{ url_for('static',filename='images/logo.png') }}" />
+    <form method="POST" action="/data" id="drop-area">
+        <input type="file" title="" accept=".zip"></input>
+    </form>
+</body>
+
+</html>

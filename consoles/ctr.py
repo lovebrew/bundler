@@ -85,8 +85,8 @@ class Ctr(Console):
             return error
 
         with open(self.final_binary_path(build_dir), "ab") as executable:
-            with open(self.game_zip, "rb") as game_data:
-                executable.write(game_data.read())
+            with open(str(self.game_zip), "rb") as game_zip:
+                executable.write(game_zip.read())
 
         return str()
 

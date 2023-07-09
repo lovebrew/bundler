@@ -1,0 +1,159 @@
+:root
+{
+  --logo-size:  max(50vh, 50vw);
+  --logo-size2: min(100vh, 100vw);
+}
+
+body, html 
+{
+  width:           100vw;
+  height:          100vh;
+  display:         flex;
+  overflow:        hidden;
+  justify-content: center;
+  margin:          0;
+  padding:         0;
+}
+
+body
+{
+  align-items: center;
+}
+
+#drop-area
+{
+  opacity:  0;
+  position: absolute;
+  left:     0;
+  bottom:   0;
+  top:      0;
+  right:    0;
+  transition: opacity 1s 0s ease;
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+#drop-area [type="file"]
+{
+  opacity:  0;
+  position: absolute;
+  left:     0;
+  bottom:   0;
+  top:      0;
+  right:    0;
+  margin: 4px;
+}
+
+#drop-area.highlight
+{
+  border: 2px rgb(0, 0, 0) dashed;
+  margin: 4px;
+  border-radius: 4px;
+  opacity: 1;
+}
+
+.alert 
+{
+  padding: 20px;
+  background-color: #F44336; /* Red */
+  color: white;
+  margin-bottom: 15px;
+}
+
+.success
+{
+  padding: 20px;
+  background-color: #43A047; /* Red */
+  color: white;
+  margin-bottom: 15px;
+}
+
+/* The close button */
+.closebtn 
+{
+  margin-left: 15px;
+  color: white;
+  font-weight: bold;
+  float: right;
+  font-size: 22px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+/* When moving the mouse over the close button */
+.closebtn:hover 
+{
+  color: black;
+}
+
+@font-face
+{
+  font-family: coolvetica;
+  src: url("{{url_for('static', filename='fonts/coolvetica.otf')}}");
+}
+
+.background
+{
+  position:      absolute;
+  height:        0;
+  width:         0;
+  border-left:   var(--logo-size) solid #e74a99;
+  border-right:  var(--logo-size) solid #27aae1;
+  border-top:    var(--logo-size) solid #e74a99;
+  border-bottom: var(--logo-size) solid #27aae1;
+}
+
+.potion 
+{
+  position:        relative;
+  width:           var(--logo-size2);
+  height:          var(--logo-size2);
+  object-fit:      contain;
+  animation:       2s ease-out    0s 1 potionAppear;
+  animation:       1s ease-in-out 0s 1 logoAppear;
+}
+
+@keyframes fade 
+{
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes logoAppear 
+{
+  0% {
+    opacity: 0;
+    transform: rotate(30deg);
+  }
+  18%{
+    transform: rotate(-20deg);
+  }
+  50%{
+    transform: rotate(15deg);
+  }
+  68%{
+    transform: rotate(-5deg);
+  }
+  100% {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes potionAppear
+{
+  0% {
+     opacity: 0;
+  }
+  50% {
+     opacity: 0;
+  }
+  100% {
+     opacity: 1;
+  }
+}
+ 
