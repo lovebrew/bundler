@@ -26,6 +26,8 @@ class Error(Enum):
     INVALID_CONFIG_DATA = auto()
     # Wii U not allowed
     CAFE_INVALID_ON_APP_VERSION_2 = auto()
+    # Invalid permission, use website
+    INVALID_METHOD_USE_WEBSITE = auto()
     # No error
     NONE = auto()
 

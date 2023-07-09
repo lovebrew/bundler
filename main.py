@@ -97,6 +97,9 @@ def validate_version(version) -> Error:
 
 @app.route("/data", methods=["POST"])
 def data():
+    if len(request.args > 0):
+        return Error.INVALID_METHOD_USE_WEBSITE.name, 400
+
     # make sure the user uploaded files
     if not "content" in request.files:
         return Error.NO_CONTENT_PACKAGE.name, 400
