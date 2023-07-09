@@ -97,9 +97,6 @@ def validate_version(version) -> Error:
 
 @app.route("/data", methods=["POST"])
 def data():
-    if len(request.args > 0):
-        return Error.INVALID_METHOD_USE_WEBSITE.name, 400
-
     # make sure the user uploaded files
     if not "content" in request.files:
         return Error.NO_CONTENT_PACKAGE.name, 400
@@ -136,10 +133,9 @@ def data():
     # set the game data for metadata
     icon_data = dict()
     for console in current_config["metadata"]["icons"]:
-        icon_file = Path(current_config["metadata"]["icons"][console])
-
-        if icon_file in archive.namelist():
-            icon_data[console] = archive.read(icon_file)
+        icon_file = Path(current_config["metadata"]["icons"][console]).as_posix()
+        if str(icon_file) in archive.namelist():
+            icon_data[console] = archive.read(str(icon_file))
 
     data = [archive.read(f"{zip_name}.zip"), icon_data]
 

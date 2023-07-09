@@ -35,7 +35,9 @@ class Console:
 
     def pre_build(self, path: Path, game_data: bytes, icon_data: dict[str, bytes]):
         # save the icon
+        print(self.type, icon_data.keys())
         if self.type in icon_data:
+            print("!")
             self.icon_path = path / f"icon.{self.icon_extension()}"
             self.icon_path.write_bytes(icon_data[self.type])
 
