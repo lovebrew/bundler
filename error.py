@@ -24,6 +24,8 @@ class Error(Enum):
     OUTDATED_CONFIG = auto()
     # Invalid config data
     INVALID_CONFIG_DATA = auto()
+    # Wii U not allowed
+    CAFE_INVALID_ON_APP_VERSION_2 = auto()
     # No error
     NONE = auto()
 

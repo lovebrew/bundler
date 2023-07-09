@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 
 from console import Console
+from error import Error
 
 
 class Cafe(Console):
@@ -11,7 +12,7 @@ class Cafe(Console):
     def __init__(self, metadata: dict) -> None:
         super().__init__(metadata)
 
-    def build(self, build_dir: Path) -> str:
+    def build(self, build_dir: Path) -> str | Error:
         shutil.copy(self.game_zip, self.path_to("content"))
 
         args = {
@@ -19,10 +20,8 @@ class Cafe(Console):
             "output": build_dir / self.title,
         }
 
-        error = self.run_command(Cafe.Elf2Rpl, args)
-
-        if error != "":
-            return error
+        if (value := self.run_command(Cafe.Elf2Rpl, args)) != Error.NONE:
+            return value
 
         args = {
             "rpx": build_dir / f"{self.title}.rpx",
@@ -34,14 +33,12 @@ class Cafe(Console):
             "icon": self.icon_file(),
         }
 
-        error = self.run_command(Cafe.BinTool, args)
-
-        if error != "":
-            return error
+        if (value := self.run_command(Cafe.BinTool, args)) != Error.NONE:
+            return value
 
         Path(self.path_to("content/game.zip")).unlink()
 
-        return str()
+        return Error.NONE
 
     def binary_extension(self) -> str:
         return "wuhb"

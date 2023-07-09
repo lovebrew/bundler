@@ -4,7 +4,6 @@ import traceback
 from datetime import date, datetime
 import time
 import zipfile
-import logging
 
 from flask import Flask, jsonify, request, render_template
 import filetype
@@ -58,7 +57,7 @@ def build_target(target: str, data: list, metadata: dict) -> tuple[str, int]:
 
         try:
             if metadata["app_version"] < 3 and target == "CAFE":
-                return f"{Error.TARGET_NOT_VALID.name} ({target})", 400
+                return f"{Error.CAFE_INVALID_ON_APP_VERSION_2.name}", 400
 
             metadata["mode"] = target
 
@@ -156,15 +155,8 @@ def data():
 
     build_data = None
 
-    __LOG_FILE__ = f"logs/{time.time()}.log"
-    logging.basicConfig(
-        filename=__LOG_FILE__,
-        encoding="utf-8",
-        level=logging.DEBUG,
-        format="%(asctime)s %(message)s",
-        datefmt="%Y-%m-%d %H:%M",
-        force=True,
-    )
+    temp_log = tempfile.TemporaryFile()
+    __LOG_FILE__ = Path(f"{temp_log.name}.log")
 
     with zipfile.ZipFile(f"{temp_file.name}.zip", "w") as build_data:
         for console in current_config["build"]["targets"]:
@@ -174,15 +166,12 @@ def data():
                 extension = __TARGET_EXTENSIONS__[console]
                 build_data.writestr(f"{game_title}.{extension}", data_or_error)
             else:
-                logging.debug(data_or_error)
+                __LOG_FILE__.write_text(data_or_error + "\n")
 
         with open(__LOG_FILE__, "r") as file:
             build_data.writestr("debug.log", file.read())
 
     build_data = Path(f"{temp_file.name}.zip").read_bytes()
-    Path(__LOG_FILE__).unlink()
-
-    temp_file.close()
 
     return build_data, 200
 

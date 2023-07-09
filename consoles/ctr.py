@@ -85,8 +85,7 @@ class Ctr(Console):
 
         # append our new converted and zipped files to the 3dsx
         with open(self.final_binary_path(build_dir), "ab") as executable:
-            with open(str(self.game_zip), "rb") as game_zip:
-                executable.write(game_zip.read())
+            executable.write(self.game_zip.read_bytes())
 
         return Error.NONE
 
