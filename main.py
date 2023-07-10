@@ -11,19 +11,15 @@ from semver import Version
 
 from modes import Mode
 from config import Config
-
+from logfile import Logger
 from error import Error
 
 app = Flask(__name__)
 
 __NAME__ = "LÖVEBrew"
-__TODAY__ = date.today().strftime("%B %d, %Y")
-__TIME__ = datetime.now().strftime("%H:%M:%S")
+__TIME__ = datetime.now()
 __START__ = time.time()
 __VERSION__ = "0.8.0"
-
-# create logs dir
-Path("logs").mkdir(exist_ok=True)
 
 
 @app.route("/")
@@ -32,21 +28,16 @@ def show_index() -> str:
     return render_template("index.html")
 
 
-@app.route("/form")
-def form() -> str:
-    return render_template("form.html")
-
-
 @app.route("/info", methods=["GET"])
 def info():
     uptime = time.gmtime(time.time() - __START__)
 
     return jsonify(
         {
-            "date": __TODAY__,
-            "time": __TIME__,
-            "uptime": time.strftime("%H:%M:%S", uptime),
-            "version": __VERSION__,
+            "Server Time": datetime.now(),
+            "Deployed": __TIME__,
+            "Uptime": time.strftime("%H:%M:%S", uptime),
+            "Version": __VERSION__,
         }
     )
 
@@ -88,9 +79,20 @@ def validate_version(version) -> Error:
             compatible_version = Version.parse(compatible)
             if config_version < compatible_version:
                 return f"{Error.OUTDATED_CONFIG.name} ({compatible} < {version})"
+            elif config_version > Version.parse(__VERSION__):
+                return f"{Error.CONFIG_VERSION_MISMATCH.name} {config_version}"
 
     except KeyError as e:
         return f"{Error.INVALID_CONFIG_DATA.name} ({e})"
+
+    return Error.NONE
+
+
+def validate_input_file(file: bytes) -> str | Error:
+    # the file should always exist and be a **VALID** zip file
+    file_type = filetype.guess(file)
+    if file_type is None or file_type.mime != "application/zip":
+        return Error.CONTENT_NON_ZIP_FILE.name
 
     return Error.NONE
 
@@ -101,10 +103,8 @@ def data():
     if not "content" in request.files:
         return Error.NO_CONTENT_PACKAGE.name, 400
 
-    # the file should always exist and be a **VALID** zip file
-    file_type = filetype.guess(request.files["content"])
-    if file_type is None or file_type.mime != "application/zip":
-        return Error.CONTENT_NON_ZIP_FILE.name, 400
+    if (value := validate_input_file(request.files["content"])) != Error.NONE:
+        return value, 400
 
     # load the zip archive into memory
     archive = zipfile.ZipFile(request.files["content"], "r")
@@ -153,9 +153,7 @@ def data():
     temp_file = tempfile.TemporaryFile()
 
     build_data = None
-
-    temp_log = tempfile.TemporaryFile()
-    __LOG_FILE__ = Path(f"{temp_log.name}.log")
+    __LOG_FILE__ = Logger()
 
     with zipfile.ZipFile(f"{temp_file.name}.zip", "w") as build_data:
         for console in current_config["build"]["targets"]:
@@ -165,10 +163,9 @@ def data():
                 extension = __TARGET_EXTENSIONS__[console]
                 build_data.writestr(f"{game_title}.{extension}", data_or_error)
             else:
-                __LOG_FILE__.write_text(data_or_error + "\n")
+                __LOG_FILE__.crit(data_or_error + "\n")
 
-        with open(__LOG_FILE__, "r") as file:
-            build_data.writestr("debug.log", file.read())
+        build_data.writestr("debug.log", __LOG_FILE__.get_content())
 
     build_data = Path(f"{temp_file.name}.zip").read_bytes()
 

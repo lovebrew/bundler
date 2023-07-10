@@ -28,6 +28,8 @@ class Error(Enum):
     CAFE_INVALID_ON_APP_VERSION_2 = auto()
     # Invalid permission, use website
     INVALID_METHOD_USE_WEBSITE = auto()
+    # Config version is mismatched
+    CONFIG_VERSION_MISMATCH = auto()
     # No error
     NONE = auto()
 
