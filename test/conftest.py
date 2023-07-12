@@ -5,7 +5,7 @@ from flask.testing import FlaskClient
 from lovebrew import create_app
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def app():
     """Create a Flask application for development testing
     This will yield a testing client

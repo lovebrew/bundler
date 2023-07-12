@@ -2,10 +2,14 @@ from flask import Flask, jsonify, request, render_template
 
 from lovebrew.process import validate_input_file, validate_version, build_target
 from lovebrew.error import Error
+from lovebrew.config import Config
+
+import zipfile
 
 
 def create_app(test_config=None) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
+    app.config["MAX_CONTENT_LENGTH"] = 0x7E80  # 32MB
 
     if test_config is not None:
         app.config.from_mapping(test_config)

@@ -18,11 +18,11 @@ def test_landing(client, root):
         root   (str)  : The page to request
     """
 
-    landing = client.get(root)
-    html = landing.data.decode()
+    response = client.get(root)
+    html = response.data.decode()
 
     assert "<title>LÖVEBrew: Bundle Your Game</title>" in html
-    assert landing.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK
 
 
 @pytest.mark.parametrize(
@@ -51,6 +51,6 @@ def test_invalid_request(client, page: str, method: str):
         method (str)  : The HTTP method
     """
 
-    landing = getattr(client, method.lower())(page)
+    response = getattr(client, method.lower())(page)
 
-    assert landing.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
