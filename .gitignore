@@ -3,3 +3,4 @@ __pycache__
 .vscode
 ngrok.sh
 *.log
+.pytest_cache

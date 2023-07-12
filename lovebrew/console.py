@@ -4,7 +4,7 @@ import shlex
 import subprocess
 from pathlib import Path
 
-from error import Error
+from lovebrew.error import Error
 
 
 class Console:

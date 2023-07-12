@@ -3,8 +3,8 @@ from pathlib import Path
 import zipfile
 
 
-from console import Console
-from error import Error
+from lovebrew.console import Console
+from lovebrew.error import Error
 
 
 class Ctr(Console):
