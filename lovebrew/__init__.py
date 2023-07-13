@@ -1,10 +1,28 @@
+import tomllib
 from flask import Flask, jsonify, request, render_template
 
-from lovebrew.process import validate_input_file, validate_version, build_target
+from lovebrew.process import (
+    validate_input_file,
+    validate_version,
+    build_target,
+    __SERVER_VERSION__,
+)
 from lovebrew.error import Error
 from lovebrew.config import Config
+from lovebrew.logfile import Logger
 
+from datetime import datetime
+from pathlib import Path
+
+import time
+import tempfile
 import zipfile
+
+__NAME__ = "LÖVEBrew"
+__TIME__ = datetime.now()
+__START__ = time.time()
+
+__TARGET_EXTENSIONS__ = {"ctr": "3dsx", "hac": "nro", "cafe": "wuhb"}
 
 
 def create_app(test_config=None) -> Flask:
@@ -28,7 +46,7 @@ def create_app(test_config=None) -> Flask:
                 "Server Time": datetime.now(),
                 "Deployed": __TIME__,
                 "Uptime": time.strftime("%H:%M:%S", uptime),
-                "Version": __VERSION__,
+                "Version": __SERVER_VERSION__,
             }
         )
 
@@ -50,7 +68,11 @@ def create_app(test_config=None) -> Flask:
 
         # load the toml config
         toml_data = archive.read("lovebrew.toml").decode("UTF-8")
-        current_config = Config(toml_data)
+
+        try:
+            current_config = Config(toml_data)
+        except tomllib.TOMLDecodeError:
+            return Error.INVALID_CONFIG_DATA, 400
 
         # validate version
         debug_version = current_config["debug"]["version"]
@@ -107,3 +129,10 @@ def create_app(test_config=None) -> Flask:
         return build_data, 200
 
     return app
+
+
+if __name__ == "lovebrew":
+    from waitress import serve
+
+    app = create_app()
+    serve(app, host="0.0.0.0", port=5001, clear_untrusted_proxy_headers=False)

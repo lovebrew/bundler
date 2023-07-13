@@ -1,5 +1,5 @@
 import pytest
-from flask import Flask, Response
+from flask import Flask
 from flask.testing import FlaskClient
 
 from lovebrew import create_app

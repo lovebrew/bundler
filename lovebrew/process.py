@@ -1,22 +1,17 @@
 import tempfile
-from pathlib import Path
 import traceback
-from datetime import date, datetime
-import time
-import zipfile
+import pkg_resources
+
+from pathlib import Path
 
 import filetype
 from semver import Version
 
 from lovebrew.modes import Mode
 from lovebrew.config import Config
-from lovebrew.logfile import Logger
 from lovebrew.error import Error
 
-__NAME__ = "LÖVEBrew"
-__TIME__ = datetime.now()
-__START__ = time.time()
-__VERSION__ = "0.8.0"
+__SERVER_VERSION__ = "0.8.0"
 
 
 def build_target(target: str, data: list, metadata: dict) -> tuple[str, int]:
@@ -46,17 +41,14 @@ def build_target(target: str, data: list, metadata: dict) -> tuple[str, int]:
             return f"An exception occurred: {traceback.format_exc()}", 400
 
 
-__TARGET_EXTENSIONS__ = {"ctr": "3dsx", "hac": "nro", "cafe": "wuhb"}
-
-
 def validate_version(version) -> Error:
     try:
         config_version = Version.parse(version)
         for compatible in Config.CompatibleVersions:
             compatible_version = Version.parse(compatible)
             if config_version < compatible_version:
-                return f"{Error.OUTDATED_CONFIG.name} ({compatible} < {version})"
-            elif config_version > Version.parse(__VERSION__):
+                return f"{Error.OUTDATED_CONFIG.name} ({version} < {compatible})"
+            elif config_version > Version.parse(__SERVER_VERSION__):
                 return f"{Error.CONFIG_VERSION_MISMATCH.name} {config_version}"
 
     except KeyError as e:
@@ -72,9 +64,3 @@ def validate_input_file(file: bytes) -> str | Error:
         return Error.CONTENT_NON_ZIP_FILE.name
 
     return Error.NONE
-
-
-if __name__ == "__main__":
-    from waitress import serve
-
-    serve(app, host="0.0.0.0", port=5001)

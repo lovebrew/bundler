@@ -1,14 +1,18 @@
 import pytest
 
+from lovebrew import __SERVER_VERSION__
+
 from pathlib import Path
 from http import HTTPStatus
 
 import io
 import zipfile
 import tempfile
+import toml
+import semver
 
 __DATA_DIRECTORY__ = Path(__file__).parent / "resources"
-
+__CONFIG_FILE_DATA__ = __DATA_DIRECTORY__ / "lovebrew.toml"
 
 # region Negative Scenarios
 
@@ -47,7 +51,7 @@ def test_no_package(client):
     response = client.post("/data")
     message = response.data.decode()
 
-    assert "NO_CONTENT_PACKAGE" == message
+    assert message == "NO_CONTENT_PACKAGE"
     assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
@@ -75,7 +79,7 @@ def test_package_no_game(client):
     )
     message = response.data.decode()
 
-    assert "MISSING_GAME_CONTENT" == message
+    assert message == "MISSING_GAME_CONTENT"
     assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
@@ -104,9 +108,85 @@ def test_package_too_big(client):
     assert response.status_code == HTTPStatus.REQUEST_ENTITY_TOO_LARGE
 
 
+def test_package_empty(client):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the /data URL is POSTed
+    AND we upload an empty zip file(?)
+    THEN check that the response is invalid
+
+    Args:
+        client (Flask): The webserver client
+    """
+
+    zip_data = create_zip_archive({})
+    assert zip_data is not None
+
+    response = client.post(
+        "/data",
+        content_type="multipart/form-data",
+        data={"content": (io.BytesIO(zip_data), "content.zip")},
+    )
+    message = response.data.decode()
+
+    assert message == "MISSING_CONFIG_FILE"
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+
+
+def test_version_outdated(client):
+    toml_data = modify_config({"debug": {"version": "0.7.0"}})
+    assert toml_data is not None
+
+    zip_data = create_zip_archive({"lovebrew.toml": toml_data})
+    assert zip_data is not None
+
+    response = client.post(
+        "/data",
+        content_type="multipart/form-data",
+        data={"content": (io.BytesIO(zip_data), "content.zip")},
+    )
+    message = response.data.decode()
+
+    assert "OUTDATED_CONFIG" in message
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+
+
 # endregion
 
 # region Positive Scenarios
+
+
+@pytest.mark.parametrize(
+    "platform,extension", [("ctr", "3dsx"), ("hac", "nro"), ("cafe", "wuhb")]
+)
+def build_platform(client, platform, extension):
+    toml_file = modify_config({"build": {"targets": [platform]}})
+    assert toml_file is not None
+
+    zip_data = create_zip_archive(
+        {
+            "lovebrew.toml": toml_file,
+            "graphics/lenny.png": fetch("lenny.png"),
+            "fonts/Perfect DOS VGA 437.ttf": fetch("Perfect DOS VGA 437.ttf"),
+        }
+    )
+    assert zip_data is not None
+
+    response = client.post(
+        "/data",
+        content_type="multipart/form-data",
+        data={"content": (io.BytesIO(zip_data), "content.zip")},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+
+    with zipfile.ZipFile(io.BytesIO(response.data), "w+") as archive:
+        assert len(archive.filelist) == 1
+        assert extension in archive.filelist
+
+        Path("example").mkdir(exist_ok=True)
+        archive.extractall("example")
+
 
 # endregion
 
@@ -129,6 +209,15 @@ def create_zip_archive(files: dict) -> bytes:
 
         temp_file.seek(0, io.SEEK_SET)
         return temp_file.read()
+
+
+def modify_config(values: dict) -> bytes:
+    result = dict()
+    with open(__CONFIG_FILE_DATA__, "r") as config:
+        result = toml.load(config)
+        dict.update(result, values)
+
+    return bytes(toml.dumps(result), encoding="utf-8")
 
 
 # endregion
