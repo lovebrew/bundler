@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 
 from lovebrew import __SERVER_VERSION__
@@ -94,7 +95,7 @@ def test_package_too_big(client):
         client (Flask): The webserver client
     """
 
-    blob = b"\0" * 0x7E81
+    blob = b"\0" * 0x2000001
 
     zip_data = create_zip_archive({"blob.txt": blob})
     assert zip_data is not None
@@ -134,7 +135,7 @@ def test_package_empty(client):
 
 
 def test_version_outdated(client):
-    toml_data = modify_config({"debug": {"version": "0.7.0"}})
+    toml_data = modify_config("debug", "version", "0.7.0")
     assert toml_data is not None
 
     zip_data = create_zip_archive({"lovebrew.toml": toml_data})
@@ -159,33 +160,31 @@ def test_version_outdated(client):
 @pytest.mark.parametrize(
     "platform,extension", [("ctr", "3dsx"), ("hac", "nro"), ("cafe", "wuhb")]
 )
-def build_platform(client, platform, extension):
-    toml_file = modify_config({"build": {"targets": [platform]}})
+def test_build_platform(client, platform, extension):
+    toml_file = modify_config("build", "targets", [platform])
     assert toml_file is not None
 
-    zip_data = create_zip_archive(
+    game_data = create_zip_archive(
         {
-            "lovebrew.toml": toml_file,
-            "graphics/lenny.png": fetch("lenny.png"),
-            "fonts/Perfect DOS VGA 437.ttf": fetch("Perfect DOS VGA 437.ttf"),
+            "main.lua": fetch("main.lua"),
+            "lenny.png": fetch("lenny.png"),
+            "Perfect DOS VGA 437.ttf": fetch("Perfect DOS VGA 437.ttf"),
         }
     )
-    assert zip_data is not None
+    assert game_data is not None
+
+    root_data = create_zip_archive({"lovebrew.toml": toml_file, "game.zip": game_data})
 
     response = client.post(
         "/data",
         content_type="multipart/form-data",
-        data={"content": (io.BytesIO(zip_data), "content.zip")},
+        data={"content": (io.BytesIO(root_data), "content.zip")},
     )
 
     assert response.status_code == HTTPStatus.OK
 
-    with zipfile.ZipFile(io.BytesIO(response.data), "w+") as archive:
-        assert len(archive.filelist) == 1
-        assert extension in archive.filelist
-
-        Path("example").mkdir(exist_ok=True)
-        archive.extractall("example")
+    with zipfile.ZipFile(io.BytesIO(response.data), "r") as archive:
+        assert extension in archive.namelist()
 
 
 # endregion
@@ -211,11 +210,11 @@ def create_zip_archive(files: dict) -> bytes:
         return temp_file.read()
 
 
-def modify_config(values: dict) -> bytes:
+def modify_config(root: str, key: str, value: Any) -> bytes:
     result = dict()
     with open(__CONFIG_FILE_DATA__, "r") as config:
         result = toml.load(config)
-        dict.update(result, values)
+        result[root][key] = value
 
     return bytes(toml.dumps(result), encoding="utf-8")
 

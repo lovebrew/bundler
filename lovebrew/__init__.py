@@ -27,7 +27,7 @@ __TARGET_EXTENSIONS__ = {"ctr": "3dsx", "hac": "nro", "cafe": "wuhb"}
 
 def create_app(test_config=None) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
-    app.config["MAX_CONTENT_LENGTH"] = 0x7E80  # 32MB
+    app.config["MAX_CONTENT_LENGTH"] = 0x2000000  # 32MB
 
     if test_config is not None:
         app.config.from_mapping(test_config)
@@ -91,7 +91,7 @@ def create_app(test_config=None) -> Flask:
         icon_data = dict()
         for console in current_config["metadata"]["icons"]:
             icon_file = Path(current_config["metadata"]["icons"][console]).as_posix()
-            if str(icon_file) in archive.namelist():
+            if icon_file != "" and str(icon_file) in archive.namelist():
                 icon_data[console] = archive.read(str(icon_file))
 
         data = [archive.read(f"{zip_name}.zip"), icon_data]
@@ -129,10 +129,3 @@ def create_app(test_config=None) -> Flask:
         return build_data, 200
 
     return app
-
-
-if __name__ == "lovebrew":
-    from waitress import serve
-
-    app = create_app()
-    serve(app, host="0.0.0.0", port=5001, clear_untrusted_proxy_headers=False)

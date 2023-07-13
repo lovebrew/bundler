@@ -8,7 +8,7 @@ from lovebrew.error import Error
 
 
 class Console:
-    BIN_PATH = Path().cwd() / "bin"
+    BIN_PATH = Path(__file__).parent / "bin"
 
     def __init__(self, metadata: dict) -> None:
         for key, value in metadata.items():
