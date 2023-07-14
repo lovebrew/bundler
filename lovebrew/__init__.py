@@ -39,8 +39,6 @@ def create_app(test_config=None) -> Flask:
 
     @app.route("/info", methods=["GET"])
     def info():
-        import uptime
-
         time_delta = (datetime.now() - __TIME__).total_seconds()
         system_uptime = str(timedelta(seconds=time_delta))
 
