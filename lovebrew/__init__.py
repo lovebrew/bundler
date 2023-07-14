@@ -11,7 +11,7 @@ from lovebrew.error import Error
 from lovebrew.config import Config
 from lovebrew.logfile import Logger
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import time
@@ -39,13 +39,16 @@ def create_app(test_config=None) -> Flask:
 
     @app.route("/info", methods=["GET"])
     def info():
-        uptime = time.gmtime(time.time() - __START__)
+        import uptime
+
+        time_delta = (datetime.now() - __TIME__).total_seconds()
+        system_uptime = str(timedelta(seconds=time_delta))
 
         return jsonify(
             {
                 "Server Time": datetime.now(),
                 "Deployed": __TIME__,
-                "Uptime": time.strftime("%H:%M:%S", uptime),
+                "Uptime": system_uptime,
                 "Version": __SERVER_VERSION__,
             }
         )
