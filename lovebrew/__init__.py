@@ -1,5 +1,6 @@
 import tomllib
 from flask import Flask, jsonify, request, render_template
+from hurry.filesize import size
 
 from lovebrew.process import (
     validate_input_file,
@@ -17,6 +18,7 @@ from pathlib import Path
 import time
 import tempfile
 import zipfile
+import io
 
 __NAME__ = "LÖVEBrew"
 __TIME__ = datetime.now()
@@ -31,6 +33,11 @@ def create_app(test_config=None) -> Flask:
 
     if test_config is not None:
         app.config.from_mapping(test_config)
+
+    @app.errorhandler(413)
+    def entity_too_large(e):
+        file_size = size(app.config["MAX_CONTENT_LENGTH"])
+        return f"{Error.CONTENT_ZIP_TOO_LARGE.name} (> {file_size})", 413
 
     @app.route("/", methods=["GET"])
     @app.route("/index", methods=["GET"])
@@ -108,24 +115,25 @@ def create_app(test_config=None) -> Flask:
             return Error.INVALID_VERSION_SPECIFIED.name, 400
 
         game_title = current_config["metadata"]["title"]
-        temp_file = tempfile.TemporaryFile()
 
         build_data = None
         __LOG_FILE__ = Logger()
 
-        with zipfile.ZipFile(f"{temp_file.name}.zip", "w") as build_data:
-            for console in current_config["build"]["targets"]:
-                data_or_error, code = build_target(console.upper(), data, metadata)
+        with tempfile.SpooledTemporaryFile() as temp_file:
+            with zipfile.ZipFile(temp_file, "w") as zip_data:
+                for console in current_config["build"]["targets"]:
+                    data_or_error, code = build_target(console.upper(), data, metadata)
 
-                if code == 200:
-                    extension = __TARGET_EXTENSIONS__[console]
-                    build_data.writestr(f"{game_title}.{extension}", data_or_error)
-                else:
-                    __LOG_FILE__.crit(data_or_error + "\n")
+                    if code == 200:
+                        extension = __TARGET_EXTENSIONS__[console]
+                        zip_data.writestr(f"{game_title}.{extension}", data_or_error)
+                    else:
+                        __LOG_FILE__.crit(data_or_error + "\n")
 
-            build_data.writestr("debug.log", __LOG_FILE__.get_content())
+                zip_data.writestr("debug.log", __LOG_FILE__.get_content())
 
-        build_data = Path(f"{temp_file.name}.zip").read_bytes()
+            temp_file.seek(0, io.SEEK_SET)
+            build_data = temp_file.read()
 
         return build_data, 200
 

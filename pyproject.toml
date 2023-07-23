@@ -10,6 +10,7 @@ dependencies = [
     "requests",
     "filetype",
     "semver",
+    "hurry.filesize",
 ]
 version = "0.8.0"
 

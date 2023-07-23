@@ -30,6 +30,8 @@ class Error(Enum):
     INVALID_METHOD_USE_WEBSITE = auto()
     # Config version is mismatched
     CONFIG_VERSION_MISMATCH = auto()
+    # Content zip is too large
+    CONTENT_ZIP_TOO_LARGE = auto()
     # No error
     NONE = auto()
 
