@@ -1,7 +1,10 @@
 import zipfile
 from pathlib import Path
+import zipfile
 
-from console import Console
+
+from lovebrew.console import Console
+from lovebrew.error import Error
 
 
 class Ctr(Console):
@@ -16,40 +19,39 @@ class Ctr(Console):
     def __init__(self, metadata: dict) -> None:
         super().__init__(metadata)
 
-    def convert_files(self, build_path: Path) -> str:
+    def convert_files(self, build_path: Path) -> str | Error:
         # extract the game zip file first
         source_path = build_path / "source"
-        with zipfile.ZipFile(self.game_zip, "r") as zip:
+        with zipfile.ZipFile(str(self.game_zip), "r") as zip:
             zip.extractall(source_path)
 
         self.game_zip.unlink()
 
         # walk through the source directory now
+
+        file_info = dict()
         for filepath in source_path.rglob("*"):
             no_suffix = filepath.with_suffix("")
-            error = None
+
+            error = Error.NONE
+            if filepath.suffix in [*Ctr.Textures, *Ctr.Fonts]:
+                file_info = {"file": filepath, "out": no_suffix}
 
             if filepath.suffix in Ctr.Textures:
-                error = self.run_command(
-                    Ctr.TexTool, {"file": filepath, "out": no_suffix}
-                )
+                error = self.run_command(Ctr.TexTool, file_info)
             elif filepath.suffix in Ctr.Fonts:
-                error = self.run_command(
-                    Ctr.FontTool, {"file": filepath, "out": no_suffix}
-                )
+                error = self.run_command(Ctr.FontTool, file_info)
 
-            if error:
+            if error != Error.NONE:
                 return error
 
-        with zipfile.ZipFile(self.game_zip, "w") as zip:
+        with zipfile.ZipFile(str(self.game_zip), "w") as zip:
             for filepath in source_path.rglob("*"):
                 zip.write(filepath, filepath.relative_to(source_path))
 
-        return str()
+        return Error.NONE
 
-    def build(self, build_dir: Path) -> str:
-        super().build(build_dir)
-
+    def build(self, build_dir: Path) -> str | Error:
         args = {
             "name": self.title,
             "desc": f"{self.description} • {self.version}",
@@ -58,10 +60,9 @@ class Ctr(Console):
             "out": build_dir / self.title,
         }
 
-        error = self.run_command(Ctr.SmdhTool, args)
-
-        if error != "":
-            return error
+        # make the SMDH for metadata
+        if (value := self.run_command(Ctr.SmdhTool, args)) != Error.NONE:
+            return value
 
         args = {
             "elf": self.binary_path(),
@@ -74,21 +75,19 @@ class Ctr(Console):
             command += ' --romfs="{romfs}"'
             args["romfs"] = self.path_to("files.romfs")
 
-        error = self.run_command(command, args)
+        # make the 3dsx binary
+        if (value := self.run_command(command, args)) != Error.NONE:
+            return value
 
-        if error != "":
-            return error
+        # convert any files that need it
+        if (value := self.convert_files(build_dir)) != Error.NONE:
+            return value
 
-        error = self.convert_files(build_dir)
-
-        if error != "":
-            return error
-
+        # append our new converted and zipped files to the 3dsx
         with open(self.final_binary_path(build_dir), "ab") as executable:
-            with open(self.game_zip, "rb") as game_data:
-                executable.write(game_data.read())
+            executable.write(self.game_zip.read_bytes())
 
-        return str()
+        return Error.NONE
 
     def binary_extension(self) -> str:
         return "3dsx"

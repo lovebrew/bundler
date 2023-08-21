@@ -4,15 +4,18 @@ import shlex
 import subprocess
 from pathlib import Path
 
+from lovebrew.error import Error
+
 
 class Console:
-    BIN_PATH = Path().cwd() / "bin"
+    BIN_PATH = Path(__file__).parent / "bin"
 
     def __init__(self, metadata: dict) -> None:
         for key, value in metadata.items():
             self.__dict__.update({key: value})
 
-        self.type = metadata["mode"]
+        self.icon_path = None
+        self.type = metadata["mode"].lower()
 
     def run_command(self, command: str, args: dict) -> str:
         try:
@@ -20,25 +23,30 @@ class Console:
             completed_process = subprocess.run(__args, check=True)
 
             if completed_process.returncode != 0:
-                return completed_process.stderr
+                return f"{Error.COMMAND_FAILED.name} {command}"
         except KeyError as e:
-            return f"run_command: failed to lookup arg for '{e}'"
+            return f"{Error.COMMAND_ARGUMENT_NOT_FOUND.name} ('{e}')"
         except subprocess.CalledProcessError as e:
-            return f"run_command: {e} ({e.stderr.decode('UTF-8').strip()})"
+            return f"{Error.COMMAND_FAILED.name} ({e.stderr.decode('UTF-8').strip()})"
         except FileNotFoundError as e:
-            return f"run_command: {e}"
+            return f"{Error.COMMAND_EXE_NOT_FOUND.name} ('{e}')"
 
-        return str()
+        return Error.NONE
 
-    def build(self, build_dir: Path) -> None:
-        if self.icon:
-            extension = self.icon_extension()
-            self.icon_path = build_dir / f"icon.{extension}"
+    def pre_build(self, path: Path, game_data: bytes, icon_data: dict[str, bytes]):
+        # save the icon
+        if self.type in icon_data:
+            self.icon_path = path / f"icon.{self.icon_extension()}"
+            self.icon_path.write_bytes(icon_data[self.type])
 
-            self.icon.save(self.icon_path)
+        # save the game zip file
+        self.game_zip = path / "game.zip"
+        self.game_zip.write_bytes(game_data)
 
-        self.game_zip = build_dir / "game.zip"
-        self.game.save(self.game_zip)
+        return self
+
+    def build(self, build_dir: Path) -> str | Error:
+        raise NotImplementedError
 
     def game_data(self) -> Path:
         return self.game_zip
@@ -50,7 +58,7 @@ class Console:
         raise NotImplementedError
 
     def icon_file(self) -> Path:
-        if self.icon:
+        if self.icon_path:
             return self.icon_path
 
         extension = self.icon_extension()

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>LÖVEBrew: Bundle Your Game</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static',filename='images/favicon.ico') }}">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/index.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/footer.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/alert.css') }}">
+
+    <script src="{{url_for('static', filename='javascript/upload.js')}}"></script>
+    <script src="https://kit.fontawesome.com/d61bd32107.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <div class="content">
+        <div id="snackbar"></div>
+        <img class="potion" src="{{ url_for('static',filename='images/logo.svg') }}" />
+        <form method="POST" action="/data" id="drop-area">
+            <input type="file" title="" accept=".zip"></input>
+        </form>
+    </div>
+    <footer>
+        <span>
+            <i class="fa-solid fa-flask"></i>
+            <a href="https://github.com/lovebrew/lovepotion">LÖVE Potion</a>
+        </span>
+        <span class="spacer">&bull;</span>
+        <span>
+            <i class="fa-brands fa-github"></i>
+            <a href="https://github.com/lovebrew/lovebrew-webserver">Source Code</a>
+        </span>
+        <span class="spacer">&bull;</span>
+        <span>
+            <i class="fa-brands fa-paypal"></i>
+            <a href="https://paypal.me/TurtleP?country.x=US&locale.x=en_US">Donate</a>
+        </span>
+        <span class="spacer">&bull;</span>
+        <span>
+            <i class="fa-regular fa-copyright" id="copyright"></i>
+            <span for="copyright">LÖVEBrew Team</span>
+        </span>
+    </footer>
+</body>
+
+</html>

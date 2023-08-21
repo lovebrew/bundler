@@ -1,0 +1,20 @@
+[project]
+name = "LOVEBrew"
+description = "A web application to build your LOVE Potion projects"
+license = "MIT"
+requires-python = ">=3.8"
+dependencies = [
+    "flask",
+    "waitress",
+    "pyopenssl",
+    "requests",
+    "filetype",
+    "semver",
+    "hurry.filesize",
+]
+version = "0.8.0"
+
+[project.urls]
+Donate = "https://paypal.me/TurtleP"
+"Source Code" = "https://github.com/lovebrew/lovebrew-webserver/"
+"Issue Tracker" = "https://github.com/lovebrew/lovebrew-webserver/issues/"

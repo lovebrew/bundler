@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from console import Console
+from lovebrew.console import Console
+from lovebrew.error import Error
 
 
 class Hac(Console):
@@ -10,9 +11,7 @@ class Hac(Console):
     def __init__(self, metadata: dict) -> None:
         super().__init__(metadata)
 
-    def build(self, build_dir: Path) -> str:
-        super().build(build_dir)
-
+    def build(self, build_dir: Path) -> str | Error:
         args = {
             "name": self.title,
             "author": self.author,
@@ -20,10 +19,8 @@ class Hac(Console):
             "out": build_dir / self.title,
         }
 
-        error = self.run_command(Hac.NacpTool, args)
-
-        if error != "":
-            return error
+        if (value := self.run_command(Hac.NacpTool, args)) != Error.NONE:
+            return value
 
         args = {
             "nacp": build_dir / f"{self.title}.nacp",
@@ -33,15 +30,13 @@ class Hac(Console):
             "output": build_dir / self.title,
         }
 
-        error = self.run_command(Hac.BinTool, args)
-
-        if error != "":
-            return error
+        if (value := self.run_command(Hac.BinTool, args)) != Error.NONE:
+            return value
 
         with open(self.final_binary_path(build_dir), "ab") as executable:
             executable.write(self.game_zip.read_bytes())
 
-        return str()
+        return Error.NONE
 
     def binary_extension(self) -> str:
         return "nro"
