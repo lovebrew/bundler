@@ -9,7 +9,7 @@ class Hac(Console):
     NacpTool = 'nacptool --create "{name}" "{author}" "{version}" "{out}.nacp"'
 
     def __init__(self, metadata: dict) -> None:
-        super().__init__(metadata)
+        super().__init__(metadata, "hac")
 
     def build(self, build_dir: Path) -> str | Error:
         args = {

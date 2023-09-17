@@ -256,6 +256,7 @@ def test_build_platform(client, target: str, extension: str, version: int):
 
     with zipfile.ZipFile(io.BytesIO(response.data), "r") as archive:
         print(f"[{target}] Contents of archive: {archive.namelist()}")
+        print(f"[{target}] {archive.read('debug.log').decode()}")
         assert any(extension in filename for filename in archive.namelist())
 
 

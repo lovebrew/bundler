@@ -10,7 +10,7 @@ class Cafe(Console):
     BinTool = 'wuhbtool "{rpx}" "{output}.wuhb" --content="{romfs}" --name="{short_name}" --short-name="{short_name}" --author="{author}" --icon="{icon}"'
 
     def __init__(self, metadata: dict) -> None:
-        super().__init__(metadata)
+        super().__init__(metadata, "cafe")
 
     def build(self, build_dir: Path) -> str | Error:
         shutil.copy(self.game_zip, self.path_to("content"))

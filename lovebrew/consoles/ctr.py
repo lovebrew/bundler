@@ -1,15 +1,14 @@
 import zipfile
 from pathlib import Path
-import zipfile
-
 
 from lovebrew.console import Console
 from lovebrew.error import Error
+from lovebrew.logfile import LogFile
 
 
 class Ctr(Console):
     SmdhTool = 'smdhtool --create "{name}" "{desc}" "{author}" "{icon}" "{out}.smdh"'
-    BinTool = '3dsxtool "{elf}" "{output}.3dsx" --smdh="{smdh}.smdh --romfs="{romfs}"'
+    BinTool = '3dsxtool "{elf}" "{output}.3dsx" --smdh="{smdh}.smdh" --romfs="{romfs}"'
     TexTool = 'tex3ds -f rgba8888 -z auto "{file}" -o "{out}.t3x"'
     FontTool = 'mkbcfnt "{file}" -o "{out}.bcfnt"'
 
@@ -17,7 +16,7 @@ class Ctr(Console):
     Fonts = [".ttf", ".otf"]
 
     def __init__(self, metadata: dict) -> None:
-        super().__init__(metadata)
+        super().__init__(metadata, "ctr")
 
     def convert_files(self, build_path: Path) -> str | Error:
         # extract the game zip file first
@@ -43,6 +42,7 @@ class Ctr(Console):
                 error = self.run_command(Ctr.FontTool, file_info)
 
             if error != Error.NONE:
+                LogFile.crit(f"Error converting {filepath}: {error}")
                 return error
 
         with zipfile.ZipFile(str(self.game_zip), "w") as zip:

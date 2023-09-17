@@ -5,17 +5,18 @@ import subprocess
 from pathlib import Path
 
 from lovebrew.error import Error
+from lovebrew.logfile import LogFile
 
 
 class Console:
     BIN_PATH = Path(__file__).parent / "bin"
 
-    def __init__(self, metadata: dict) -> None:
+    def __init__(self, metadata: dict, type: str) -> None:
         for key, value in metadata.items():
             self.__dict__.update({key: value})
 
         self.icon_path = None
-        self.type = metadata["mode"].lower()
+        self.type = type
 
     def run_command(self, command: str, args: dict) -> str:
         try:
@@ -23,13 +24,17 @@ class Console:
             completed_process = subprocess.run(__args, check=True, capture_output=True)
 
             if completed_process.returncode != 0:
-                return f"{Error.COMMAND_FAILED.name} {command}"
+                LogFile.crit(f"Command failed: {__args.join(' ')}")
+                return f"{Error.COMMAND_FAILED.name}: {command}"
         except KeyError as e:
+            LogFile.crit(f"Command argument not found: {e}")
             return f"{Error.COMMAND_ARGUMENT_NOT_FOUND.name} ('{e}')"
         except subprocess.CalledProcessError as e:
-            return f"{Error.COMMAND_FAILED.name} ({e.stderr.decode('UTF-8').strip()})"
+            LogFile.crit(f"Command failed: {e.stderr.decode('UTF-8').strip()}")
+            return Error.COMMAND_FAILED.name
         except FileNotFoundError as e:
-            return f"{Error.COMMAND_EXE_NOT_FOUND.name} ('{e}')"
+            LogFile.crit(f"Command not found: {__args[0]}")
+            return f"{Error.COMMAND_EXE_NOT_FOUND.name} ('{__args[0]}')"
 
         return Error.NONE
 
@@ -45,7 +50,7 @@ class Console:
 
         return self
 
-    def build(self, build_dir: Path) -> str | Error:
+    def build(self, _: Path) -> str | Error:
         raise NotImplementedError
 
     def game_data(self) -> Path:
@@ -58,9 +63,11 @@ class Console:
         raise NotImplementedError
 
     def icon_file(self) -> Path:
+        # return custom icon path
         if self.icon_path:
             return self.icon_path
 
+        # return default icon path
         extension = self.icon_extension()
         return self.path_to(f"icon.{extension}")
 
@@ -68,8 +75,12 @@ class Console:
         return self.path_to(f"lovepotion_v{self.app_version}.elf")
 
     def final_binary_path(self, build_dir: Path) -> Path:
-        extension = self.binary_extension()
+        """
+        Gets the final output binary path
+        from the build directory.
+        """
 
+        extension = self.binary_extension()
         path = build_dir / f"{self.title}.{extension}"
 
         if not path.exists():
@@ -78,6 +89,11 @@ class Console:
         return path
 
     def path_to(self, item) -> Path:
+        """
+        Gets the path to a file in the bin directory relative
+        to the console type.
+        """
+
         path = f"{Console.BIN_PATH}/{self.type}/{item}"
 
         if not Path(path).exists():
