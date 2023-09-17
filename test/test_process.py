@@ -60,7 +60,7 @@ def test_package_no_game(client):
     """
     GIVEN a Flask application configured for testing
     WHEN the /data URL is POSTed
-    AND we upload a zip file containing `lovebrew.toml`
+    AND we upload a zip file containing only `lovebrew.toml`
     THEN check that the response is invalid
 
     Args:
@@ -80,7 +80,7 @@ def test_package_no_game(client):
     )
     message = response.data.decode()
 
-    assert message == "MISSING_GAME_CONTENT"
+    assert "MISSING_GAME_CONTENT" in message
     assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
@@ -152,16 +152,87 @@ def test_version_outdated(client):
     assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
+def test_bad_config(client):
+    """_summary_
+    GIVEN a Flask application configured for testing
+    WHEN the /data URL is POSTed
+    AND the lovebrew.toml is invalid
+    THEN check that the response is invalid
+
+    Args:
+        client (Flask): The webserver client
+    """
+
+    toml_data = fetch("bad_config.toml")
+    assert toml_data is not None
+
+    zip_data = create_zip_archive({"lovebrew.toml": toml_data})
+    assert zip_data is not None
+
+    response = client.post(
+        "/data",
+        content_type="multipart/form-data",
+        data={"content": (io.BytesIO(zip_data), "content.zip")},
+    )
+    message = response.data.decode()
+
+    assert "INVALID_CONFIG" in message
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+
+
 # endregion
 
 # region Positive Scenarios
 
 
+def test_no_icons(client):
+    """_summary_
+    GIVEN a Flask application configured for testing
+    WHEN the /data URL is POSTed
+    AND the lovebrew.toml has no icons
+    THEN check that the response is valid
+
+    Args:
+        client (Flask): The webserver client
+    """
+
+    toml_file = modify_config("metadata", "icons", {})
+    assert toml_file is not None
+
+    game_data = create_zip_archive(
+        {
+            "main.lua": fetch("main.lua"),
+            "lenny.png": fetch("lenny.png"),
+            "Perfect DOS VGA 437.ttf": fetch("Perfect DOS VGA 437.ttf"),
+        }
+    )
+    assert game_data is not None
+
+    root_data = create_zip_archive({"lovebrew.toml": toml_file, "game.zip": game_data})
+
+    response = client.post(
+        "/data",
+        content_type="multipart/form-data",
+        data={"content": (io.BytesIO(root_data), "content.zip")},
+    )
+
+    assert response.status_code == HTTPStatus.OK
+
+
 @pytest.mark.parametrize(
-    "platform,extension", [("ctr", "3dsx"), ("hac", "nro"), ("cafe", "wuhb")]
+    "target,extension,version",
+    [
+        ("ctr", "3dsx", 2),
+        ("ctr", "3dsx", 3),
+        ("hac", "nro", 2),
+        ("hac", "nro", 3),
+        ("cafe", "wuhb", 3),
+    ],
 )
-def test_build_platform(client, platform, extension):
-    toml_file = modify_config("build", "targets", [platform])
+def test_build_platform(client, target: str, extension: str, version: int):
+    toml_file = modify_config_values(
+        "build", [{"targets": [target], "app_version": version}]
+    )
     assert toml_file is not None
 
     game_data = create_zip_archive(
@@ -184,7 +255,9 @@ def test_build_platform(client, platform, extension):
     assert response.status_code == HTTPStatus.OK
 
     with zipfile.ZipFile(io.BytesIO(response.data), "r") as archive:
-        assert extension in archive.namelist()
+        print(f"[{target}] Contents of archive: {archive.namelist()}")
+        print(f"[{target}] {archive.read('debug.log').decode()}")
+        assert any(extension in filename for filename in archive.namelist())
 
 
 # endregion
@@ -215,6 +288,18 @@ def modify_config(root: str, key: str, value: Any) -> bytes:
     with open(__CONFIG_FILE_DATA__, "r") as config:
         result = toml.load(config)
         result[root][key] = value
+
+    return bytes(toml.dumps(result), encoding="utf-8")
+
+
+def modify_config_values(root: str, key_values: list[dict[str, any]]):
+    result = dict()
+    with open(__CONFIG_FILE_DATA__, "r") as config:
+        result = toml.load(config)
+        for data_replace in key_values:
+            for key, value in data_replace.items():
+                if key in result[root]:
+                    result[root][key] = value
 
     return bytes(toml.dumps(result), encoding="utf-8")
 

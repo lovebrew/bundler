@@ -1,3 +1,4 @@
+from multiprocessing import Value
 import tomllib
 from flask import Flask, jsonify, request, render_template
 from hurry.filesize import size
@@ -10,7 +11,7 @@ from lovebrew.process import (
 )
 from lovebrew.error import Error
 from lovebrew.config import Config
-from lovebrew.logfile import Logger
+from lovebrew.logfile import LogFile
 
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -25,6 +26,8 @@ __TIME__ = datetime.now()
 __START__ = time.time()
 
 __TARGET_EXTENSIONS__ = {"ctr": "3dsx", "hac": "nro", "cafe": "wuhb"}
+
+ConfigFile = None
 
 
 def create_app(test_config=None) -> Flask:
@@ -75,62 +78,65 @@ def create_app(test_config=None) -> Flask:
             return Error.MISSING_CONFIG_FILE.name, 400
 
         # load the toml config
-        toml_data = archive.read("lovebrew.toml").decode("UTF-8")
+        toml_data = archive.read("lovebrew.toml").decode("utf-8")
 
         try:
-            current_config = Config(toml_data)
+            global ConfigFile
+            ConfigFile = Config(toml_data)
         except tomllib.TOMLDecodeError:
-            return Error.INVALID_CONFIG_DATA, 400
+            return Error.INVALID_CONFIG_DATA.name, 400
+        except KeyError as e:
+            return f"{Error.INVALID_CONFIG_DATA.name}: {e}", 400
+        except ValueError as e:
+            return f"{Error.INVALID_CONFIG_DATA.name}: {e}", 400
 
-        # validate version
-        debug_version = current_config["debug"]["version"]
-        if (value := validate_version(debug_version)) != Error.NONE:
+        # validate version against allowed server versions
+        if (value := validate_version(ConfigFile.version())) != Error.NONE:
             return value, 400
 
-        # get our metadata
-        metadata = current_config["metadata"]
-        zip_name = current_config["build"]["source"]
+        zip_name_base = ConfigFile.source()
 
         # check that our game zip file exists
-        if f"{zip_name}.zip" not in archive.namelist():
+        if f"{zip_name_base}.zip" not in archive.namelist():
             return Error.MISSING_GAME_CONTENT.name, 400
 
         # set the game data for metadata
         icon_data = dict()
-        for console in current_config["metadata"]["icons"]:
-            icon_file = Path(current_config["metadata"]["icons"][console]).as_posix()
-            if icon_file != "" and str(icon_file) in archive.namelist():
-                icon_data[console] = archive.read(str(icon_file))
 
-        data = [archive.read(f"{zip_name}.zip"), icon_data]
+        if ConfigFile.has_icons():
+            icon_dict = ConfigFile.icons()
 
-        try:
-            target_version = current_config["build"]["app_version"]
-            if not int(target_version) or target_version not in range(2, 3):
-                return Error.INVALID_VERSION_SPECIFIED, 400
+            for console in icon_dict:
+                icon_file = Path(icon_dict[console]).as_posix()
+                if icon_file != "" and str(icon_file) in archive.namelist():
+                    icon_data[console] = archive.read(str(icon_file))
 
-            metadata["app_version"] = target_version
+        data = [archive.read(f"{zip_name_base}.zip"), icon_data]
 
-        except ValueError:
-            return Error.INVALID_VERSION_SPECIFIED.name, 400
-
-        game_title = current_config["metadata"]["title"]
-
+        game_title = ConfigFile.title()
         build_data = None
-        __LOG_FILE__ = Logger()
+
+        metadata = {
+            "title": game_title,
+            "description": ConfigFile.description(),
+            "author": ConfigFile.author(),
+            "version": ConfigFile.version(),
+            "app_version": ConfigFile.app_version(),
+        }
 
         with tempfile.SpooledTemporaryFile() as temp_file:
             with zipfile.ZipFile(temp_file, "w") as zip_data:
-                for console in current_config["build"]["targets"]:
+                for console in ConfigFile.targets():
                     data_or_error, code = build_target(console.upper(), data, metadata)
 
-                    if code == 200:
-                        extension = __TARGET_EXTENSIONS__[console]
-                        zip_data.writestr(f"{game_title}.{extension}", data_or_error)
-                    else:
-                        __LOG_FILE__.crit(data_or_error + "\n")
+                    if code != 200:
+                        LogFile.crit(data_or_error + "\n")
+                        continue
 
-                zip_data.writestr("debug.log", __LOG_FILE__.get_content())
+                    extension = __TARGET_EXTENSIONS__[console]
+                    zip_data.writestr(f"{game_title}.{extension}", data_or_error)
+
+                zip_data.writestr("debug.log", LogFile.get_content())
 
             temp_file.seek(0, io.SEEK_SET)
             build_data = temp_file.read()

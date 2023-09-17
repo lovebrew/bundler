@@ -1,0 +1,17 @@
+[metadata]
+title = "Test"
+author = "Someone"
+description = "yeet"
+version = "0.1.0"
+icon = ""
+
+[build]
+clean = true
+targets = ["ctr", "hac", "cafe"]
+source = "main"
+saveDir = "build"
+
+[debug]
+logging = true
+# DO NOT MODIFY #
+version = "0.8.0"

@@ -7,11 +7,12 @@ from pathlib import Path
 import filetype
 from semver import Version
 
+from lovebrew.logfile import LogFile
 from lovebrew.modes import Mode
 from lovebrew.config import Config
 from lovebrew.error import Error
 
-__SERVER_VERSION__ = "0.8.0"
+__SERVER_VERSION__ = "0.8.1"
 
 
 def build_target(target: str, data: list, metadata: dict) -> tuple[str, int]:
@@ -19,13 +20,12 @@ def build_target(target: str, data: list, metadata: dict) -> tuple[str, int]:
         build_dir = Path(dir)
 
         try:
+            LogFile.info(f"Building {target}...")
+
             if metadata["app_version"] < 3 and target == "CAFE":
                 return f"{Error.CAFE_INVALID_ON_APP_VERSION_2.name}", 400
 
-            metadata["mode"] = target
-
             console = Mode[target].value(metadata)
-
             error = console.pre_build(build_dir, data[0], data[1]).build(build_dir)
 
             if error != Error.NONE:

@@ -6,6 +6,11 @@ import io
 class Logger:
     TimeStampFormat = "%H:%M"
 
+    def __new__(cls):
+        if not hasattr(cls, "instance"):
+            cls.instance = super(Logger, cls).__new__(cls)
+        return cls.instance
+
     def __init__(self) -> None:
         self.file = tempfile.NamedTemporaryFile("w+", delete=False)
 
@@ -31,3 +36,6 @@ class Logger:
 
     def crit(self, message: str):
         self.__write__(f"[CRIT] {message}")
+
+
+LogFile = Logger()
