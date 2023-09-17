@@ -20,7 +20,7 @@ class Console:
     def run_command(self, command: str, args: dict) -> str:
         try:
             __args = shlex.split(command.format(**args))
-            completed_process = subprocess.run(__args, check=True)
+            completed_process = subprocess.run(__args, check=True, capture_output=True)
 
             if completed_process.returncode != 0:
                 return f"{Error.COMMAND_FAILED.name} {command}"

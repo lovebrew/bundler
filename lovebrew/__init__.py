@@ -1,3 +1,4 @@
+from multiprocessing import Value
 import tomllib
 from flask import Flask, jsonify, request, render_template
 from hurry.filesize import size
@@ -76,13 +77,18 @@ def create_app(test_config=None) -> Flask:
 
         # load the toml config
         toml_data = archive.read("lovebrew.toml").decode("UTF-8")
+        print(toml_data)
 
         try:
             current_config = Config(toml_data)
         except tomllib.TOMLDecodeError:
-            return Error.INVALID_CONFIG_DATA, 400
+            return Error.INVALID_CONFIG_DATA.name, 400
+        except KeyError as e:
+            return f"{Error.INVALID_CONFIG_DATA.name}: {e}", 400
+        except ValueError as e:
+            return f"{Error.INVALID_CONFIG_DATA.name}: {e}", 400
 
-        # validate version
+        # validate version against allowed server versions
         debug_version = current_config["debug"]["version"]
         if (value := validate_version(debug_version)) != Error.NONE:
             return value, 400
@@ -97,22 +103,16 @@ def create_app(test_config=None) -> Flask:
 
         # set the game data for metadata
         icon_data = dict()
-        for console in current_config["metadata"]["icons"]:
-            icon_file = Path(current_config["metadata"]["icons"][console]).as_posix()
-            if icon_file != "" and str(icon_file) in archive.namelist():
-                icon_data[console] = archive.read(str(icon_file))
+
+        if len(current_config["metadata"]["icons"].keys()) > 0:
+            icon_dict = current_config["metadata"]["icons"]
+            for console in current_config["metadata"]["icons"]:
+                icon_file = Path(icon_dict[console]).as_posix()
+                if icon_file != "" and str(icon_file) in archive.namelist():
+                    icon_data[console] = archive.read(str(icon_file))
 
         data = [archive.read(f"{zip_name}.zip"), icon_data]
-
-        try:
-            target_version = current_config["build"]["app_version"]
-            if not int(target_version) or target_version not in range(2, 3):
-                return Error.INVALID_VERSION_SPECIFIED, 400
-
-            metadata["app_version"] = target_version
-
-        except ValueError:
-            return Error.INVALID_VERSION_SPECIFIED.name, 400
+        metadata["app_version"] = current_config["build"]["app_version"]
 
         game_title = current_config["metadata"]["title"]
 

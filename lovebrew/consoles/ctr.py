@@ -9,7 +9,7 @@ from lovebrew.error import Error
 
 class Ctr(Console):
     SmdhTool = 'smdhtool --create "{name}" "{desc}" "{author}" "{icon}" "{out}.smdh"'
-    BinTool = '3dsxtool "{elf}" "{output}.3dsx" --smdh="{smdh}.smdh"'
+    BinTool = '3dsxtool "{elf}" "{output}.3dsx" --smdh="{smdh}.smdh --romfs="{romfs}"'
     TexTool = 'tex3ds -f rgba8888 -z auto "{file}" -o "{out}.t3x"'
     FontTool = 'mkbcfnt "{file}" -o "{out}.bcfnt"'
 
@@ -68,15 +68,11 @@ class Ctr(Console):
             "elf": self.binary_path(),
             "output": build_dir / self.title,
             "smdh": f"{build_dir / self.title}",
+            "romfs": self.path_to(f"files_v{self.app_version}.romfs"),
         }
 
-        command = Ctr.BinTool
-        if int(self.app_version) < 3:
-            command += ' --romfs="{romfs}"'
-            args["romfs"] = self.path_to("files.romfs")
-
         # make the 3dsx binary
-        if (value := self.run_command(command, args)) != Error.NONE:
+        if (value := self.run_command(Ctr.BinTool, args)) != Error.NONE:
             return value
 
         # convert any files that need it
