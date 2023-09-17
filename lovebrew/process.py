@@ -12,7 +12,7 @@ from lovebrew.modes import Mode
 from lovebrew.config import Config
 from lovebrew.error import Error
 
-__SERVER_VERSION__ = "0.8.0"
+__SERVER_VERSION__ = "0.8.1"
 
 
 def build_target(target: str, data: list, metadata: dict) -> tuple[str, int]:

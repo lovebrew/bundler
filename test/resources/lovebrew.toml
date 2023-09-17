@@ -26,6 +26,6 @@ app_version = 2
 
 [debug]
 # DO NOT MODIFY #
-version = "0.8.0"
+version = "0.8.1"
 logging = false
 # ------------- #

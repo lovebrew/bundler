@@ -7,7 +7,7 @@ from flask import app
 
 
 class Config:
-    CompatibleVersions = ["0.8.0"]
+    CompatibleVersions = ["0.8.1"]
 
     Metadata = [("title", str), ("author", str), ("description", str), ("version", str)]
     Build = [("source", str), ("targets", list), ("app_version", int)]

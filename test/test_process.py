@@ -176,7 +176,7 @@ def test_bad_config(client):
     )
     message = response.data.decode()
 
-    # assert "OUTDATED_CONFIG" in message
+    assert "INVALID_CONFIG" in message
     assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
