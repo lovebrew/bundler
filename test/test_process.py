@@ -1,4 +1,3 @@
-from typing import Any
 import pytest
 
 from lovebrew import __SERVER_VERSION__
@@ -7,13 +6,8 @@ from pathlib import Path
 from http import HTTPStatus
 
 import io
-import zipfile
-import tempfile
-import toml
-import semver
 
-__DATA_DIRECTORY__ = Path(__file__).parent / "resources"
-__CONFIG_FILE_DATA__ = __DATA_DIRECTORY__ / "lovebrew.toml"
+from conftest import create_zip_archive, fetch, modify_config
 
 # region Negative Scenarios
 
@@ -182,8 +176,6 @@ def test_bad_config(client):
 
 # endregion
 
-# region Positive Scenarios
-
 
 def test_no_icons(client):
     """_summary_
@@ -217,91 +209,3 @@ def test_no_icons(client):
     )
 
     assert response.status_code == HTTPStatus.OK
-
-
-@pytest.mark.parametrize(
-    "target,extension,version",
-    [
-        ("ctr", "3dsx", 2),
-        ("ctr", "3dsx", 3),
-        ("hac", "nro", 2),
-        ("hac", "nro", 3),
-        ("cafe", "wuhb", 3),
-    ],
-)
-def test_build_platform(client, target: str, extension: str, version: int):
-    toml_file = modify_config_values(
-        "build", [{"targets": [target], "app_version": version}]
-    )
-    assert toml_file is not None
-
-    game_data = create_zip_archive(
-        {
-            "main.lua": fetch("main.lua"),
-            "lenny.png": fetch("lenny.png"),
-            "Perfect DOS VGA 437.ttf": fetch("Perfect DOS VGA 437.ttf"),
-        }
-    )
-    assert game_data is not None
-
-    root_data = create_zip_archive({"lovebrew.toml": toml_file, "game.zip": game_data})
-
-    response = client.post(
-        "/data",
-        content_type="multipart/form-data",
-        data={"content": (io.BytesIO(root_data), "content.zip")},
-    )
-
-    assert response.status_code == HTTPStatus.OK
-
-    with zipfile.ZipFile(io.BytesIO(response.data), "r") as archive:
-        print(f"[{target}] Contents of archive: {archive.namelist()}")
-        print(f"[{target}] {archive.read('debug.log').decode()}")
-        assert any(extension in filename for filename in archive.namelist())
-
-
-# endregion
-
-# region Helper Methods
-
-
-def fetch(filename: str) -> bytes | None:
-    try:
-        filepath = __DATA_DIRECTORY__ / filename
-        return filepath.read_bytes()
-    except FileExistsError:
-        return None
-
-
-def create_zip_archive(files: dict) -> bytes:
-    with tempfile.SpooledTemporaryFile() as temp_file:
-        with zipfile.ZipFile(temp_file, "w") as archive:
-            for filename, content in files.items():
-                archive.writestr(filename, content)
-
-        temp_file.seek(0, io.SEEK_SET)
-        return temp_file.read()
-
-
-def modify_config(root: str, key: str, value: Any) -> bytes:
-    result = dict()
-    with open(__CONFIG_FILE_DATA__, "r") as config:
-        result = toml.load(config)
-        result[root][key] = value
-
-    return bytes(toml.dumps(result), encoding="utf-8")
-
-
-def modify_config_values(root: str, key_values: list[dict[str, any]]):
-    result = dict()
-    with open(__CONFIG_FILE_DATA__, "r") as config:
-        result = toml.load(config)
-        for data_replace in key_values:
-            for key, value in data_replace.items():
-                if key in result[root]:
-                    result[root][key] = value
-
-    return bytes(toml.dumps(result), encoding="utf-8")
-
-
-# endregion
