@@ -29,62 +29,60 @@ jobs:
   
   CTR:
     runs-on: ubuntu-latest
-      container:
-        image: docker://devkitpro/devkitarm
-        options: --cpus 2
+    container:
+      image: docker://devkitpro/devkitarm
+      options: --cpus 2
 
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-        - name: Install dependencies
-          run: |
-            python -m pip install --upgrade pip
-            python -m pip install pytest
-            pip install .
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          pip install .
 
-        - name: Test with pytest
-          run: |
-            python -m pytest test/test_process_ctr.py
+      - name: Test with pytest
+        run: |
+          python -m pytest test/test_process_ctr.py
 
   HAC:
     runs-on: ubuntu-latest
+    container:
+      image: docker://devkitpro/devkita64
+      options: --cpus 2
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      container:
-        image: docker://devkitpro/devkita64
-        options: --cpus 2
-      
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          pip install .
 
-        - name: Install dependencies
-          run: |
-            python -m pip install --upgrade pip
-            python -m pip install pytest
-            pip install .
-
-        - name: Test with pytest
-          run: |
-            python -m pytest test/test_process_hac.py
+      - name: Test with pytest
+        run: |
+          python -m pytest test/test_process_hac.py
   
   CAFE:
     runs-on: ubuntu-latest
+    container:
+      image: docker://devkitpro/devkitppc
+      options: --cpus 2
 
-      container:
-        image: docker://devkitpro/devkitppc
-        options: --cpus 2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v3
-
-        - name: Install dependencies
-          run: |
-            python -m pip install --upgrade pip
-            python -m pip install pytest
-            pip install .
-        
-        - name: Test with pytest
-          run: |
-            python -m pytest test/test_process_ctr.py
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          pip install .
+      
+      - name: Test with pytest
+        run: |
+          python -m pytest test/test_process_ctr.py
