@@ -1,10 +1,10 @@
 [project]
 name = "LOVEBrew"
 description = "A web application to build your LOVE Potion projects"
-license = "MIT"
 requires-python = ">=3.8"
 dependencies = [
     "flask",
+    "flask-cors",
     "waitress",
     "pyopenssl",
     "requests",

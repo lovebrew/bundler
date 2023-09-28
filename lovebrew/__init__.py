@@ -1,6 +1,7 @@
 from multiprocessing import Value
 import tomllib
 from flask import Flask, jsonify, request, render_template
+from flask_cors import CORS
 from hurry.filesize import size
 
 from lovebrew.process import (
@@ -20,6 +21,7 @@ import time
 import tempfile
 import zipfile
 import io
+import os
 
 __NAME__ = "LÖVEBrew"
 __TIME__ = datetime.now()
@@ -30,9 +32,13 @@ __TARGET_EXTENSIONS__ = {"ctr": "3dsx", "hac": "nro", "cafe": "wuhb"}
 ConfigFile = None
 
 
-def create_app(test_config=None) -> Flask:
+def create_app(test_config=None, dev=False) -> Flask:
     app = Flask(__name__, instance_relative_config=True)
     app.config["MAX_CONTENT_LENGTH"] = 0x2000000  # 32MB
+
+    if dev:
+        print("DEVELOPMENT MODE, CORS DISABLED")
+        CORS(app)
 
     if test_config is not None:
         app.config.from_mapping(test_config)

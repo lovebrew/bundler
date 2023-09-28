@@ -4,3 +4,6 @@ __pycache__
 ngrok.sh
 *.log
 .pytest_cache
+.vs
+build
+LOVEBrew.egg-info
