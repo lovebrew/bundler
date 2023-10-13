@@ -46,7 +46,7 @@ def create_app(test_config=None, dev=False) -> Flask:
         app.config.from_mapping(test_config)
 
     __INDEX_PATH__ = Path(app.static_folder).parent / "static/index.html"
-    with open(__INDEX_PATH__, "r") as index_file:
+    with open(__INDEX_PATH__, "r", encoding="utf-8") as index_file:
         __INDEX_PAGE__ = index_file.read()
 
     @app.errorhandler(413)
