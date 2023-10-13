@@ -54,6 +54,10 @@ def create_app(test_config=None, dev=False) -> Flask:
         file_size = size(app.config["MAX_CONTENT_LENGTH"])
         return f"{Error.CONTENT_ZIP_TOO_LARGE.name} (> {file_size})", 413
 
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        return "Internal Server Error", 500
+
     @app.route("/", methods=["GET"])
     @app.route("/index", methods=["GET"])
     def show_index() -> str:
