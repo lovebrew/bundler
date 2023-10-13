@@ -30,10 +30,12 @@ __START__ = time.time()
 __TARGET_EXTENSIONS__ = {"ctr": "3dsx", "hac": "nro", "cafe": "wuhb"}
 
 ConfigFile = None
+__INDEX_PAGE__ = None
+__STATIC_INFO__ = {"static_url_path": ""}
 
 
 def create_app(test_config=None, dev=False) -> Flask:
-    app = Flask(__name__, instance_relative_config=True)
+    app = Flask(__name__, instance_relative_config=True, **__STATIC_INFO__)
     app.config["MAX_CONTENT_LENGTH"] = 0x2000000  # 32MB
 
     if dev:
@@ -43,15 +45,23 @@ def create_app(test_config=None, dev=False) -> Flask:
     if test_config is not None:
         app.config.from_mapping(test_config)
 
+    __INDEX_PATH__ = Path(app.static_folder).parent / "static/index.html"
+    with open(__INDEX_PATH__, "r", encoding="utf-8") as index_file:
+        __INDEX_PAGE__ = index_file.read()
+
     @app.errorhandler(413)
     def entity_too_large(e):
         file_size = size(app.config["MAX_CONTENT_LENGTH"])
         return f"{Error.CONTENT_ZIP_TOO_LARGE.name} (> {file_size})", 413
 
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        return "Internal Server Error", 500
+
     @app.route("/", methods=["GET"])
     @app.route("/index", methods=["GET"])
     def show_index() -> str:
-        return render_template("index.html")
+        return __INDEX_PAGE__
 
     @app.route("/info", methods=["GET"])
     def info():

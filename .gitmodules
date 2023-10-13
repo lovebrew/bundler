@@ -1,0 +1,4 @@
+[submodule "lovebrew/static"]
+	path = lovebrew/static
+	url = https://github.com/lovebrew/lovebrew-frontend
+	branch = dist

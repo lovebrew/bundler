@@ -11,9 +11,12 @@ dependencies = [
     "filetype",
     "semver",
     "hurry.filesize",
-    "toml"
+    "toml",
 ]
 version = "0.8.0"
+
+[tool.setuptools.package-data]
+"lovebrew.static" = ["**"]
 
 [project.urls]
 Donate = "https://paypal.me/TurtleP"
