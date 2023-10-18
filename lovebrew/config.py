@@ -1,132 +1,67 @@
-from multiprocessing import Value
+from ast import arg
 from pathlib import Path
-
-import tomllib
-
-from flask import app
 
 
 class Config:
     CompatibleVersions = ["0.8.1"]
 
-    Metadata = [("title", str), ("author", str), ("description", str), ("version", str)]
-    Build = [("source", str), ("targets", list), ("app_version", int)]
-    Debug = [("version", str), ("logging", bool)]
-
     ValidTargets = ["ctr", "hac", "cafe"]
 
-    Error_Key_Type = "[{0}] key not found: '{1}'"
-    Error_Key_Value_Type = "Invalid [{0}] key: {1} ({2} expected, got {3})"
+    ValidArguments = {
+        "title": str(),
+        "author": str(),
+        "description": str(),
+        "version": str(),
+        "targets": str(),
+    }
 
-    def _validate_metadata(self, user_metadata: dict):
-        self._validate_main("metadata", Config.Metadata, user_metadata)
+    def __init__(self, arguments: dict, files: dict) -> None:
+        match arguments:
+            case {
+                "title": str(),
+                "author": str(),
+                "description": str(),
+                "version": str(),
+                "target": str(),
+            }:
+                pass
+            case e:
+                raise ValueError(f"Invalid arguments {e}")
 
-        # icons may or may not exist
-        if not "icons" in user_metadata:
-            return
+        if not arguments["target"] in Config.ValidTargets:
+            raise ValueError(f"Invalid target '{arguments['target']}'")
 
-        for target in Config.ValidTargets:
-            # check if an icon is available
-            if target in user_metadata["icons"]:
-                user_value_type = type(user_metadata["icons"][target])
+        self.target = arguments["target"]
 
-                message = Config.Error_Key_Value_Type.format(
-                    "metadata", target, str, user_value_type
-                )
+        self.title = arguments["title"]
+        self.author = arguments["author"]
+        self.description = arguments["description"]
+        self.version = arguments["version"]
 
-                # make sure icon value is a str
-                if not user_value_type is str:
-                    raise ValueError(message)
+        self.files = files
 
-    def _validate_build(self, user_build: dict):
-        self._validate_main("build", Config.Build, user_build)
+    def get_target(self) -> str:
+        return self.target
 
-        if not user_build["source"]:
-            raise ValueError("Game content name not set.")
+    def get_title(self) -> str:
+        return self.title
 
-        if len(user_build["targets"]) == 0:
-            raise ValueError("No targets were selected.")
+    def get_author(self) -> str:
+        return self.author
 
-        if not user_build["app_version"] in range(2, 4):
-            raise ValueError(f"Invalid app version: {user_build['app_version']}.")
+    def get_description(self) -> str:
+        return self.description
 
-    def _validate_debug(self, user_debug: dict):
-        self._validate_main("debug", Config.Debug, user_debug)
+    def get_version(self) -> str:
+        return self.version
 
-        if not user_debug["version"]:
-            raise ValueError("Debug version is missing.")
+    def get_app_version(self) -> int:
+        return self.app_version
 
-    def _validate_main(self, section: str, validation: list[tuple], user_data: dict):
-        for tuple_item in validation:
-            key, value_type = tuple_item
-            if not key in user_data.keys():
-                raise KeyError(Config.Error_Key_Type.format(section, key))
+    def get_icon(self, directory: Path, type: str) -> Path:
+        assert type in Config.ValidTargets
 
-            user_value_type = type(user_data[key])
-            message = Config.Error_Key_Value_Type.format(
-                section, key, str(value_type), str(user_value_type)
-            )
+        icon_data = (directory / f"icon-{type}").as_posix()
+        self.files[f"icon-{type}"].save(icon_data)
 
-            if not user_value_type is value_type:
-                raise ValueError(message)
-
-    def __init__(self, file_data: str) -> None:
-        self.data = dict()
-
-        user_data = tomllib.loads(str(file_data))
-
-        if "metadata" not in user_data:
-            raise KeyError("No [metadata] section present.")
-        self._validate_metadata(user_data["metadata"])
-
-        if "build" not in user_data:
-            raise KeyError("No [build] section present.")
-        self._validate_build(user_data["build"])
-
-        # make sure only one of each valid target exists
-        user_data["build"]["targets"] = list(set(user_data["build"]["targets"]))
-
-        if "debug" not in user_data:
-            raise KeyError("No [debug] section present.")
-        self._validate_debug(user_data["debug"])
-
-        dict.update(self.data, user_data)
-
-    def __getitem__(self, item) -> any:
-        return self.data[item]
-
-    def title(self) -> str:
-        return self.data["metadata"]["title"]
-
-    def description(self) -> str:
-        return self.data["metadata"]["description"]
-
-    def author(self) -> str:
-        return self.data["metadata"]["author"]
-
-    def version(self) -> str:
-        return self.data["metadata"]["version"]
-
-    def has_icons(self) -> bool:
-        return len(self.data["metadata"]["icons"].keys()) > 0
-
-    def icons(self) -> dict:
-        return self.data["metadata"]["icons"]
-
-    def icon(self, console: str) -> str:
-        return self.data["metadata"]["icons"][console]
-
-    def source(self) -> str:
-        return self.data["build"]["source"]
-
-    def targets(self) -> list:
-        return self.data["build"]["targets"]
-
-    def app_version(self) -> int:
-        return self.data["build"]["app_version"]
-
-    def version(self) -> str:
-        return self.data["debug"]["version"]
-
-    def logging(self) -> bool:
-        return self.data["debug"]["logging"]
+        return icon_data

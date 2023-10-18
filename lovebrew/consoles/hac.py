@@ -1,5 +1,8 @@
 from pathlib import Path
 
+from lovebrew.command import Command
+from lovebrew.config import Config
+
 from lovebrew.console import Console
 from lovebrew.error import Error
 
@@ -8,33 +11,34 @@ class Hac(Console):
     BinTool = 'elf2nro "{elf}" "{output}.nro" --nacp="{nacp}" --icon="{icon}" --romfs="{romfs}"'
     NacpTool = 'nacptool --create "{name}" "{author}" "{version}" "{out}.nacp"'
 
-    def __init__(self, metadata: dict) -> None:
-        super().__init__(metadata, "hac")
+    def __init__(self) -> None:
+        super().__init__("hac")
 
-    def build(self, build_dir: Path) -> str | Error:
+    def build(self, build_dir: Path, metadata: Config) -> str | Error:
+        icon_data = self.icon_file()
+        if (value := metadata.get_icon(build_dir, self.type)) is not None:
+            icon_data = value
+
         args = {
-            "name": self.title,
-            "author": self.author,
-            "version": self.version,
-            "out": build_dir / self.title,
+            "name": metadata.get_title(),
+            "author": metadata.get_author(),
+            "version": metadata.get_version(),
+            "out": build_dir / metadata.get_title(),
         }
 
-        if (value := self.run_command(Hac.NacpTool, args)) != Error.NONE:
+        if (value := Command.execute(Hac.NacpTool, args)) != Error.NONE:
             return value
 
         args = {
-            "nacp": build_dir / f"{self.title}.nacp",
-            "icon": self.icon_file(),
+            "nacp": build_dir / f"{metadata.get_title()}.nacp",
+            "icon": icon_data,
             "romfs": self.path_to("files.romfs"),
             "elf": self.binary_path(),
-            "output": build_dir / self.title,
+            "output": build_dir / metadata.get_title(),
         }
 
-        if (value := self.run_command(Hac.BinTool, args)) != Error.NONE:
+        if (value := Command.execute(Hac.BinTool, args)) != Error.NONE:
             return value
-
-        with open(self.final_binary_path(build_dir), "ab") as executable:
-            executable.write(self.game_zip.read_bytes())
 
         return Error.NONE
 

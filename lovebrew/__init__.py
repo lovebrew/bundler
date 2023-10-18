@@ -1,33 +1,26 @@
-from multiprocessing import Value
-import tomllib
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, request
 from flask_cors import CORS
 from hurry.filesize import size
 
-from lovebrew.process import (
-    validate_input_file,
-    validate_version,
-    build_target,
-    __SERVER_VERSION__,
-)
+__SERVER_VERSION__ = "0.9.0"
+
+from lovebrew.consoles.ctr import Ctr
+
 from lovebrew.error import Error
 from lovebrew.config import Config
-from lovebrew.logfile import LogFile
+from lovebrew.command import Command
+from lovebrew.modes import Mode
 
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import time
 import tempfile
-import zipfile
-import io
-import os
+
 
 __NAME__ = "LÖVEBrew"
 __TIME__ = datetime.now()
 __START__ = time.time()
-
-__TARGET_EXTENSIONS__ = {"ctr": "3dsx", "hac": "nro", "cafe": "wuhb"}
 
 ConfigFile = None
 __INDEX_PAGE__ = None
@@ -63,100 +56,97 @@ def create_app(test_config=None, dev=False) -> Flask:
     def show_index() -> str:
         return __INDEX_PAGE__
 
+    def convert_which(which: str) -> tuple[str, Path]:
+        """Converts a file to a given format
+
+        Args:
+            which (str): The format to convert to
+
+        Returns:
+            Error | str: Error result
+        """
+
+        font_types = [".ttf", ".otf"]
+        texture_types = [".png", ".jpg", ".jpeg"]
+
+        command = Ctr.TexTool
+        valid_types = texture_types
+        if which == "bcfnt":
+            command = Ctr.FontTool
+            valid_types = font_types
+
+        if len(request.files) == 0:
+            return "No file uploaded", 400
+
+        filename = Path(list(request.files.keys())[0])
+        if not filename.suffix in valid_types:
+            return f"Invalid file type: {filename.suffix}", 400
+
+        request.files[str(filename)].save(str(filename))
+
+        file_path = filename.with_suffix(f".{which}")
+        args = {"file": str(filename), "out": file_path}
+
+        return Command.execute(command, args), file_path
+
+    @app.route("/convert/t3x", methods=["POST"])
+    def convert_t3x() -> tuple[str, int] | tuple[bytes, int]:
+        error, filepath = convert_which("t3x")
+
+        if error != Error.NONE:
+            return error, 400
+
+        return filepath.read_bytes(), 200
+
+    @app.route("/convert/bcfnt", methods=["POST"])
+    def convert_bcfnt() -> tuple[str, int] | tuple[bytes, int]:
+        error, filepath = convert_which("bcfnt")
+
+        if error != Error.NONE:
+            return error, 400
+
+        return filepath.read_bytes(), 200
+
     @app.route("/info", methods=["GET"])
     def info():
+        """Display the information of the web server
+
+        Returns:
+            str: The information of the web server
+        """
         time_delta = (datetime.now() - __TIME__).total_seconds()
         system_uptime = str(timedelta(seconds=time_delta))
 
-        return jsonify(
-            {
-                "Server Time": datetime.now(),
-                "Deployed": __TIME__,
-                "Uptime": system_uptime,
-                "Version": __SERVER_VERSION__,
-            }
-        )
-
-    @app.route("/data", methods=["POST"])
-    def data():
-        # make sure the user uploaded files
-        if not "content" in request.files:
-            return Error.NO_CONTENT_PACKAGE.name, 400
-
-        if (value := validate_input_file(request.files["content"])) != Error.NONE:
-            return value, 400
-
-        # load the zip archive into memory
-        archive = zipfile.ZipFile(request.files["content"], "r")
-
-        # check that our config file exists
-        if "lovebrew.toml" not in archive.namelist():
-            return Error.MISSING_CONFIG_FILE.name, 400
-
-        # load the toml config
-        toml_data = archive.read("lovebrew.toml").decode("utf-8")
-
-        try:
-            global ConfigFile
-            ConfigFile = Config(toml_data)
-        except tomllib.TOMLDecodeError:
-            return Error.INVALID_CONFIG_DATA.name, 400
-        except KeyError as e:
-            return f"{Error.INVALID_CONFIG_DATA.name}: {e}", 400
-        except ValueError as e:
-            return f"{Error.INVALID_CONFIG_DATA.name}: {e}", 400
-
-        # validate version against allowed server versions
-        if (value := validate_version(ConfigFile.version())) != Error.NONE:
-            return value, 400
-
-        zip_name_base = ConfigFile.source()
-
-        # check that our game zip file exists
-        if f"{zip_name_base}.zip" not in archive.namelist():
-            return Error.MISSING_GAME_CONTENT.name, 400
-
-        # set the game data for metadata
-        icon_data = dict()
-
-        if ConfigFile.has_icons():
-            icon_dict = ConfigFile.icons()
-
-            for console in icon_dict:
-                icon_file = Path(icon_dict[console]).as_posix()
-                if icon_file != "" and str(icon_file) in archive.namelist():
-                    icon_data[console] = archive.read(str(icon_file))
-
-        data = [archive.read(f"{zip_name_base}.zip"), icon_data]
-
-        game_title = ConfigFile.title()
-        build_data = None
-
-        metadata = {
-            "title": game_title,
-            "description": ConfigFile.description(),
-            "author": ConfigFile.author(),
-            "version": ConfigFile.version(),
-            "app_version": ConfigFile.app_version(),
+        return {
+            "Server Time": datetime.now(),
+            "Deployed": __TIME__,
+            "Uptime": system_uptime,
+            "Version": __SERVER_VERSION__,
         }
 
-        with tempfile.SpooledTemporaryFile() as temp_file:
-            with zipfile.ZipFile(temp_file, "w") as zip_data:
-                for console in ConfigFile.targets():
-                    data_or_error, code = build_target(console.upper(), data, metadata)
+    @app.route("/compile", methods=["POST"])
+    def compile() -> tuple[str, int] | tuple[bytes, int]:
+        """Compiles homebrew data to the proper binary
 
-                    if code != 200:
-                        LogFile.crit(data_or_error + "\n")
-                        continue
+        Returns:
+            Error message or binary data
+        """
 
-                    extension = __TARGET_EXTENSIONS__[console]
-                    zip_data.writestr(f"{game_title}.{extension}", data_or_error)
+        try:
+            config = Config(request.args, request.files)
+        except ValueError as e:
+            return str(e), 400
 
-                zip_data.writestr("debug.log", LogFile.get_content())
+        with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as dir:
+            console = Mode[config.get_target().upper()].value()
+            build_dir = Path(dir)
 
-            temp_file.seek(0, io.SEEK_SET)
-            build_data = temp_file.read()
+            error = console.build(build_dir, config)
 
-        return build_data, 200
+            if error != Error.NONE:
+                return f"Error building {config.get_target().upper()}: {error}", 400
+
+            binary_path = console.final_binary_path(build_dir, config.get_title())
+            return binary_path.read_bytes()
 
     return app
