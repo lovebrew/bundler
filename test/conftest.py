@@ -48,32 +48,5 @@ def fetch(filename: str) -> bytes | None:
         return None
 
 
-def create_zip_archive(files: dict) -> bytes:
-    with tempfile.SpooledTemporaryFile() as temp_file:
-        with zipfile.ZipFile(temp_file, "w") as archive:
-            for filename, content in files.items():
-                archive.writestr(filename, content)
-
-        temp_file.seek(0, io.SEEK_SET)
-        return temp_file.read()
-
-
-def modify_config(root: str, key: str, value) -> bytes:
-    result = dict()
-    with open(__CONFIG_FILE_DATA__, "r") as config:
-        result = toml.load(config)
-        result[root][key] = value
-
-    return bytes(toml.dumps(result), encoding="utf-8")
-
-
-def modify_config_values(root: str, key_values: list[dict[str, any]]):
-    result = dict()
-    with open(__CONFIG_FILE_DATA__, "r") as config:
-        result = toml.load(config)
-        for data_replace in key_values:
-            for key, value in data_replace.items():
-                if key in result[root]:
-                    result[root][key] = value
-
-    return bytes(toml.dumps(result), encoding="utf-8")
+def create_args(title: str, author: str, description: str, version: str) -> str:
+    return f"/compile?title={title}&author={author}&description={description}&version={version}"

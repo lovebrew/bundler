@@ -79,18 +79,26 @@ def create_app(test_config=None, dev=False) -> Flask:
             return "No file uploaded", 400
 
         filename = Path(list(request.files.keys())[0])
-        if not filename.suffix in valid_types:
-            return f"Invalid file type: {filename.suffix}", 400
 
-        request.files[str(filename)].save(str(filename))
+        with tempfile.tempdir() as temp_directory:
+            if not filename.suffix in valid_types:
+                return f"Invalid file type: {filename.suffix}", 400
 
-        file_path = filename.with_suffix(f".{which}")
-        args = {"file": str(filename), "out": file_path}
+            request.files[str(filename)].save(str(temp_directory / filename))
 
-        return Command.execute(command, args), file_path
+            file_path = filename.with_suffix(f".{which}")
+            args = {"file": str(filename), "out": file_path}
+
+            return Command.execute(command, args), file_path
 
     @app.route("/convert/t3x", methods=["POST"])
     def convert_t3x() -> tuple[str, int] | tuple[bytes, int]:
+        """Converts a texture to a t3x file
+
+        Returns:
+            tuple[str, int] | tuple[bytes, int]: Resulting error or binary data
+        """
+
         error, filepath = convert_which("t3x")
 
         if error != Error.NONE:
@@ -100,6 +108,12 @@ def create_app(test_config=None, dev=False) -> Flask:
 
     @app.route("/convert/bcfnt", methods=["POST"])
     def convert_bcfnt() -> tuple[str, int] | tuple[bytes, int]:
+        """Converts a font to a bcfnt file
+
+        Returns:
+            tuple[str, int] | tuple[bytes, int]: Resulting error or binary data
+        """
+
         error, filepath = convert_which("bcfnt")
 
         if error != Error.NONE:
@@ -114,6 +128,7 @@ def create_app(test_config=None, dev=False) -> Flask:
         Returns:
             str: The information of the web server
         """
+
         time_delta = (datetime.now() - __TIME__).total_seconds()
         system_uptime = str(timedelta(seconds=time_delta))
 
