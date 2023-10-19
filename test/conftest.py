@@ -57,3 +57,39 @@ def create_args(
     }
 
     return {k: v for k, v in args.items() if v is not None}
+
+
+def assert_title(title: str, expected: str = "Untitled"):
+    message = f"Title '{expected}' expected, got '{title}'"
+
+    if expected != "Unknown":
+        message = f"Custom {message}"
+
+    assert title == expected, message
+
+
+def assert_description(description: str, expected: str = "No description"):
+    message = f"Description '{expected}' expected, got '{description}'"
+
+    if expected != "No description":
+        message = f"Custom {message}"
+
+    assert description == expected, message
+
+
+def assert_author(author: str, expected: str = "Unknown"):
+    message = f"Author '{expected}' expected, got '{author}'"
+
+    if expected != "Unknown":
+        message = f"Custom {message}"
+
+    assert author == expected, message
+
+
+def assert_version(version: str, expected: str = "0.0.0"):
+    message = f"Version '{expected}' expected, got '{version}'"
+
+    if expected != "0.0.0":
+        message = f"Custom {message}"
+
+    assert version == expected, message

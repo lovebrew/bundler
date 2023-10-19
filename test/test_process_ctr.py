@@ -89,32 +89,49 @@ def test_default_metadata(client: FlaskClient, metadata: dict[str, str]):
     default_version = "0.0.0"
     default_author = "Unknown"
 
-    for index in range(0, 0x0A):
-        short_description = response.data[smdh_data : smdh_data + 0x80].decode(
-            "UTF-16LE"
+    for _ in range(0, 0x0A):
+        short_description = (
+            response.data[smdh_data : smdh_data + 0x80]
+            .decode("UTF-16LE")
+            .replace("\x00", "")
         )
 
         if short_description != default_title:
-            assert short_description == metadata.get("title")
+            assert short_description == metadata.get("title"), f"Title: {short_description} != {metadata.get("title")}"
+        else:
+            assert short_description == default_title, f"Title: {short_description} != {default_title}"
 
-        smdh_data += 0x80
+        smdh_data += 0x80 
 
         long_description, version = (
-            response.data[smdh_data : smdh_data + 0x100].decode("UTF-16LE").split(" • ")
+            response.data[smdh_data : smdh_data + 0x100]
+            .decode("UTF-16LE")
+            .replace("\x00", "")
+            .split(" • ")
         )
 
         if long_description != default_description:
-            assert long_description == metadata.get("description")
+            assert long_description == metadata.get("description"), f"Description: {long_description} != {metadata.get("description")}"
+        else:
+            assert long_description == default_description, f"Description: {long_description} != {default_description}"
 
         if version != default_version:
-            assert version == metadata.get("version")
+            assert version == metadata.get("version"), f"Version: {version} != {metadata.get("version")}"
+        else:
+            assert version == default_version, f"Version: {version} != {default_version}"
 
         smdh_data += 0x100
 
-        author = response.data[smdh_data : smdh_data + 0x80].decode("UTF-16LE")
+        author = (
+            response.data[smdh_data : smdh_data + 0x80]
+            .decode("UTF-16LE")
+            .replace("\x00", "")
+        )
 
         if author != default_author:
-            assert author == metadata.get("author")
+            assert author == metadata.get("author"), f"Author: {author} != {metadata.get("author")}"
+        else:
+            assert author == default_author, f"Author: {author} != {default_author}"
 
         smdh_data += 0x80
 
