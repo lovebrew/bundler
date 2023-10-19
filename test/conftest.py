@@ -45,6 +45,10 @@ def fetch(filename: str) -> bytes | None:
         return None
 
 
+def resolve_path(path: str) -> str:
+    return __DATA_DIRECTORY__ / path
+
+
 def create_args(
     title: str, author: str, description: str, version: str, target: str
 ) -> dict[str, str]:

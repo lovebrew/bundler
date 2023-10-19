@@ -1,9 +1,20 @@
+import base64
 import io
+import json
 import pytest
 
+from pathlib import Path
 from http import HTTPStatus
 
-from conftest import create_args, fetch
+from conftest import (
+    create_args,
+    fetch,
+    assert_title,
+    assert_description,
+    assert_author,
+    assert_version,
+    resolve_path,
+)
 from flask.testing import FlaskClient
 
 
@@ -97,11 +108,11 @@ def test_default_metadata(client: FlaskClient, metadata: dict[str, str]):
         )
 
         if short_description != default_title:
-            assert short_description == metadata.get("title"), f"Title: {short_description} != {metadata.get("title")}"
+            assert_title(short_description, metadata.get("title"))
         else:
-            assert short_description == default_title, f"Title: {short_description} != {default_title}"
+            assert_title(short_description)
 
-        smdh_data += 0x80 
+        smdh_data += 0x80
 
         long_description, version = (
             response.data[smdh_data : smdh_data + 0x100]
@@ -111,14 +122,14 @@ def test_default_metadata(client: FlaskClient, metadata: dict[str, str]):
         )
 
         if long_description != default_description:
-            assert long_description == metadata.get("description"), f"Description: {long_description} != {metadata.get("description")}"
+            assert_description(long_description, metadata.get("description"))
         else:
-            assert long_description == default_description, f"Description: {long_description} != {default_description}"
+            assert_description(long_description)
 
         if version != default_version:
-            assert version == metadata.get("version"), f"Version: {version} != {metadata.get("version")}"
+            assert_version(version, metadata.get("version"))
         else:
-            assert version == default_version, f"Version: {version} != {default_version}"
+            assert_version(version)
 
         smdh_data += 0x100
 
@@ -129,15 +140,15 @@ def test_default_metadata(client: FlaskClient, metadata: dict[str, str]):
         )
 
         if author != default_author:
-            assert author == metadata.get("author"), f"Author: {author} != {metadata.get("author")}"
+            assert_author(author, metadata.get("author"))
         else:
-            assert author == default_author, f"Author: {author} != {default_author}"
+            assert_author(author)
 
         smdh_data += 0x80
 
 
 @pytest.mark.parametrize("texture_name", ["lenny.png", "dio.jpg"])
-def test_convert_texture(client: FlaskClient, texture_name: str):
+def test_convert_texture_single(client: FlaskClient, texture_name: str):
     """
     GIVEN a Flask application configured for testing
     WHEN the /convert/t3x URL is POSTed
@@ -149,20 +160,29 @@ def test_convert_texture(client: FlaskClient, texture_name: str):
         texture_path (str): Texture path
     """
 
-    texture_path = fetch(texture_name)
-    texture_extension = texture_name.split(".")[-1]
+    texture_path = resolve_path(texture_name)
 
     response = client.post(
         "/convert/t3x",
         content_type="multipart/form-data",
-        data={f"file.{texture_extension}": (io.BytesIO(texture_path), texture_name)},
+        data={
+            str(texture_path): (
+                io.BytesIO(texture_path.read_bytes()),
+                texture_name,
+            )
+        },
     )
 
     assert response.status_code == HTTPStatus.OK
 
+    json_array = json.loads(response.data)
+    assert 1 == len(json_array)
 
-@pytest.mark.parametrize("font_name", ["Perfect DOS VGA 437.ttf", "Oneday.otf"])
-def test_convert_font(client: FlaskClient, font_name: str):
+    texture_filepath = json_array[0].get("filepath")
+    assert texture_filepath == str(texture_path.with_suffix(".t3x"))
+
+
+def test_convert_texture_multi(client: FlaskClient):
     """
     GIVEN a Flask application configured for testing
     WHEN the /convert/bcfnt URL is POSTed
@@ -174,14 +194,91 @@ def test_convert_font(client: FlaskClient, font_name: str):
         texture_path (str): Texture path
     """
 
-    texture_path = fetch(font_name)
-    texture_extension = font_name.split(".")[-1]
+    texture_names = ["lenny.png", "dio.jpg"]
+    texture_paths = {
+        tex_name: (io.BytesIO(resolve_path(tex_name).read_bytes()), tex_name)
+        for tex_name in texture_names
+    }
+
+    response = client.post(
+        "/convert/t3x",
+        content_type="multipart/form-data",
+        data=texture_paths,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+
+    json_array = json.loads(response.data)
+    assert 2 == len(json_array)
+
+
+@pytest.mark.parametrize("font_name", ["Perfect DOS VGA 437.ttf", "Oneday.otf"])
+def test_convert_font_single(client: FlaskClient, font_name: str):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the /convert/bcfnt URL is POSTed
+    AND the font is supplied
+    THEN check that the response is valid
+
+    Args:
+        client (FlaskClient): The webserver client
+        texture_path (str): Texture path
+    """
+
+    font_path = resolve_path(font_name)
 
     response = client.post(
         "/convert/bcfnt",
         content_type="multipart/form-data",
-        data={f"file.{texture_extension}": (io.BytesIO(texture_path), font_name)},
+        data={str(font_path): (io.BytesIO(font_path.read_bytes()), font_name)},
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.data[:4] == b"CFNT"
+
+    json_array = json.loads(response.data)
+    assert 1 == len(json_array)
+
+    font_filepath = json_array[0].get("filepath")
+    assert font_filepath == str(font_path.with_suffix(".bcfnt"))
+
+    font_data_b64 = json_array[0].get("data")
+    assert font_data_b64 is not None
+
+    font_data = base64.b64decode(font_data_b64)
+    assert font_data[:4] == b"CFNT"
+
+
+def test_convert_font_multi(client: FlaskClient):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the /convert/bcfnt URL is POSTed
+    AND the font is supplied
+    THEN check that the response is valid
+
+    Args:
+        client (FlaskClient): The webserver client
+        texture_path (str): Texture path
+    """
+
+    font_names = ["Perfect DOS VGA 437.ttf", "Oneday.otf"]
+    font_paths = {
+        font_name: (io.BytesIO(resolve_path(font_name).read_bytes()), font_name)
+        for font_name in font_names
+    }
+
+    response = client.post(
+        "/convert/bcfnt",
+        content_type="multipart/form-data",
+        data=font_paths,
+    )
+
+    assert response.status_code == HTTPStatus.OK
+
+    json_array = json.loads(response.data)
+    assert 2 == len(json_array)
+
+    for font_info in json_array:
+        value = font_info.get("data")
+
+        font_data = base64.b64decode(value)
+        assert font_data[:4] == b"CFNT"

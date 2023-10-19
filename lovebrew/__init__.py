@@ -1,3 +1,4 @@
+import base64
 from flask import Flask, request
 from flask_cors import CORS
 from hurry.filesize import size
@@ -63,7 +64,7 @@ def create_app(test_config=None, dev=False) -> Flask:
             which (str): The format to convert to
 
         Returns:
-            Error | str: Error result
+            Error | bytes: Error result
         """
 
         font_types = [".ttf", ".otf"]
@@ -76,23 +77,38 @@ def create_app(test_config=None, dev=False) -> Flask:
             valid_types = font_types
 
         if len(request.files) == 0:
-            return "No file uploaded", None
+            return "No file(s) uploaded", None
 
-        with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as temp_directory:
-            filename = temp_directory / Path(list(request.files.keys())[0])
+        json_result = list()
 
-            if not filename.suffix in valid_types:
-                return f"Invalid file type: {filename.suffix}", None
+        with tempfile.TemporaryDirectory() as temp_directory:
+            for file_path, file_data in request.files.items():
+                filename = Path(temp_directory) / Path(file_path).name
 
-            request.files[str(filename.name)].save(filename)
+                if not filename.suffix in valid_types:
+                    return f"Invalid file type: {filename.suffix}", None
 
-            file_path = filename.with_suffix(f".{which}")
-            args = {"file": str(filename), "out": file_path}
+                file_data.save(filename)
 
-            if (value := Command.execute(command, args)) != Error.NONE:
-                return value, None
+                converted_path = filename.with_suffix(f".{which}")
+                args = {"file": filename, "out": converted_path}
 
-            return Error.NONE, file_path.read_bytes()
+                if (value := Command.execute(command, args)) != Error.NONE:
+                    return value, None
+
+                file_result_path = (
+                    Path(file_path).resolve().parent / converted_path.name
+                )
+                file_bytes = converted_path.read_bytes()
+
+                json_result.append(
+                    {
+                        "filepath": str(file_result_path),
+                        "data": base64.b64encode(file_bytes).decode("utf-8"),
+                    }
+                )
+
+        return Error.NONE, json_result
 
     @app.route("/convert/t3x", methods=["POST"])
     def convert_t3x() -> tuple[str, int] | tuple[bytes, int]:
