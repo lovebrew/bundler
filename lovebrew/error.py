@@ -12,6 +12,8 @@ class Error(Enum):
     COMMAND_EXE_NOT_FOUND = auto()
     # Config version is mismatched
     CONFIG_VERSION_MISMATCH = auto()
+    # Description for metadata too long
+    DESCRIPTION_TOO_LONG = auto()
     # No error
     NONE = auto()
 

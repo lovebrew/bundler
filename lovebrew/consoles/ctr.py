@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from lovebrew.command import Command
 from lovebrew.config import Config
 
@@ -15,7 +16,7 @@ class Ctr(Console):
     def __init__(self) -> None:
         super().__init__("ctr")
 
-    def build(self, build_dir: Path, metadata: Config) -> str | Error | bytes:
+    def build(self, build_dir: Path, metadata: Config) -> str | Error:
         icon_data = self.icon_file()
         if (value := metadata.get_icon(build_dir, self.type)) is not None:
             icon_data = value
@@ -38,7 +39,7 @@ class Ctr(Console):
         args = {
             "elf": self.binary_path(),
             "output": build_dir / metadata.get_title(),
-            "smdh": f"{build_dir / metadata.get_title()}",
+            "smdh": build_dir / metadata.get_title(),
             "romfs": self.path_to(f"files.romfs"),
         }
 

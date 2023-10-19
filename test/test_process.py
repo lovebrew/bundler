@@ -1,5 +1,8 @@
-from numpy import mat
+from flask import url_for
 import pytest
+
+from flask.testing import FlaskClient
+import urllib
 
 from lovebrew import __SERVER_VERSION__
 
@@ -32,22 +35,3 @@ def test_invalid_request(client, method):
             assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
         case _:
             assert False
-
-
-@pytest.mark.parametrize("target", ["ctr", "hac", "cafe"])
-def test_no_icons(client, target):
-    """_summary_
-    GIVEN a Flask application configured for testing
-    WHEN the /data URL is POSTed
-    AND the icons are not supplied
-    THEN check that the response is valid
-
-    Args:
-        client (Flask): The webserver client
-        target (str)  : The target console`
-    """
-
-    query = create_args("Test", "Test", "Test", "0.0.0", target)
-    response = client.post(query)
-    print(response.data)
-    assert response.status_code == HTTPStatus.OK

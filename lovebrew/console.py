@@ -9,14 +9,12 @@ class Console:
     BIN_PATH = Path(__file__).parent / "bin"
 
     def __init__(self, type: str) -> None:
-        self.icon_path = None
         self.type = type
+
+        self.icon_path = None
 
     def build(self, _: Path) -> str | Error:
         raise NotImplementedError
-
-    def game_data(self) -> Path:
-        return self.game_zip
 
     def icon_extension(self) -> str:
         raise NotImplementedError

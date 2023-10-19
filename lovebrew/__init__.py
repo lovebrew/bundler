@@ -76,20 +76,23 @@ def create_app(test_config=None, dev=False) -> Flask:
             valid_types = font_types
 
         if len(request.files) == 0:
-            return "No file uploaded", 400
+            return "No file uploaded", None
 
-        filename = Path(list(request.files.keys())[0])
+        with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as temp_directory:
+            filename = temp_directory / Path(list(request.files.keys())[0])
 
-        with tempfile.tempdir() as temp_directory:
             if not filename.suffix in valid_types:
-                return f"Invalid file type: {filename.suffix}", 400
+                return f"Invalid file type: {filename.suffix}", None
 
-            request.files[str(filename)].save(str(temp_directory / filename))
+            request.files[str(filename.name)].save(filename)
 
             file_path = filename.with_suffix(f".{which}")
             args = {"file": str(filename), "out": file_path}
 
-            return Command.execute(command, args), file_path
+            if (value := Command.execute(command, args)) != Error.NONE:
+                return value, None
+
+            return Error.NONE, file_path.read_bytes()
 
     @app.route("/convert/t3x", methods=["POST"])
     def convert_t3x() -> tuple[str, int] | tuple[bytes, int]:
@@ -99,12 +102,12 @@ def create_app(test_config=None, dev=False) -> Flask:
             tuple[str, int] | tuple[bytes, int]: Resulting error or binary data
         """
 
-        error, filepath = convert_which("t3x")
+        error, file_data = convert_which("t3x")
 
         if error != Error.NONE:
             return error, 400
 
-        return filepath.read_bytes(), 200
+        return file_data, 200
 
     @app.route("/convert/bcfnt", methods=["POST"])
     def convert_bcfnt() -> tuple[str, int] | tuple[bytes, int]:
@@ -114,12 +117,12 @@ def create_app(test_config=None, dev=False) -> Flask:
             tuple[str, int] | tuple[bytes, int]: Resulting error or binary data
         """
 
-        error, filepath = convert_which("bcfnt")
+        error, file_data = convert_which("bcfnt")
 
         if error != Error.NONE:
             return error, 400
 
-        return filepath.read_bytes(), 200
+        return file_data, 200
 
     @app.route("/info", methods=["GET"])
     def info():
@@ -147,6 +150,9 @@ def create_app(test_config=None, dev=False) -> Flask:
             Error message or binary data
         """
 
+        if len(list(request.args.keys())) == 0:
+            return "No arguments supplied", 400
+
         try:
             config = Config(request.args, request.files)
         except ValueError as e:
@@ -158,10 +164,10 @@ def create_app(test_config=None, dev=False) -> Flask:
 
             error = console.build(build_dir, config)
 
-            if error != Error.NONE:
-                return f"Error building {config.get_target().upper()}: {error}", 400
+            if error != Error.NONE and not isinstance(error, bytes):
+                return error, 400
 
             binary_path = console.final_binary_path(build_dir, config.get_title())
-            return binary_path.read_bytes()
+            return binary_path.read_bytes(), 200
 
     return app

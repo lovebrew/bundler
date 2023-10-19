@@ -1,27 +1,12 @@
-from ast import arg
 from pathlib import Path
 
 
 class Config:
-    CompatibleVersions = ["0.8.1"]
-
     ValidTargets = ["ctr", "hac", "cafe"]
-
-    ValidArguments = {
-        "title": str(),
-        "author": str(),
-        "description": str(),
-        "version": str(),
-        "targets": str(),
-    }
 
     def __init__(self, arguments: dict, files: dict) -> None:
         match arguments:
             case {
-                "title": str(),
-                "author": str(),
-                "description": str(),
-                "version": str(),
                 "target": str(),
             }:
                 pass
@@ -33,10 +18,10 @@ class Config:
 
         self.target = arguments["target"]
 
-        self.title = arguments["title"]
-        self.author = arguments["author"]
-        self.description = arguments["description"]
-        self.version = arguments["version"]
+        self.title = arguments.get("title", "Untitled")
+        self.author = arguments.get("author", "Unknown")
+        self.description = arguments.get("description", "No description")
+        self.version = arguments.get("version", "0.0.0")
 
         self.files = files
 
@@ -60,6 +45,9 @@ class Config:
 
     def get_icon(self, directory: Path, type: str) -> Path:
         assert type in Config.ValidTargets
+
+        if f"icon-{type}" not in self.files:
+            return None
 
         icon_data = (directory / f"icon-{type}").as_posix()
         self.files[f"icon-{type}"].save(icon_data)

@@ -1,8 +1,5 @@
+from urllib.parse import urlencode
 import pytest
-import tempfile
-import io
-import zipfile
-import toml
 
 from pathlib import Path
 
@@ -48,5 +45,15 @@ def fetch(filename: str) -> bytes | None:
         return None
 
 
-def create_args(title: str, author: str, description: str, version: str) -> str:
-    return f"/compile?title={title}&author={author}&description={description}&version={version}"
+def create_args(
+    title: str, author: str, description: str, version: str, target: str
+) -> dict[str, str]:
+    args = {
+        "title": title,
+        "author": author,
+        "description": description,
+        "version": version,
+        "target": target,
+    }
+
+    return {k: v for k, v in args.items() if v is not None}
