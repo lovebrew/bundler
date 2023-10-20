@@ -1,3 +1,4 @@
+import json
 from urllib.parse import urlencode
 import pytest
 
@@ -57,10 +58,24 @@ def create_args(
         "author": author,
         "description": description,
         "version": version,
-        "target": target,
+        "targets": target,
     }
 
     return {k: v for k, v in args.items() if v is not None}
+
+
+def decode_json_array(data: bytes, length: int) -> dict[str, str]:
+    json_data = json.loads(data)
+    assert len(json_data) == length
+
+    return json_data
+
+
+def decode_json_object(data: bytes, length: int) -> dict[str, str]:
+    json_data = json.loads(data)
+    assert len(json_data.keys()) == length
+
+    return json_data
 
 
 def assert_title(title: str, expected: str = "Untitled"):

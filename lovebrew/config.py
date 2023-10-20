@@ -7,16 +7,22 @@ class Config:
     def __init__(self, arguments: dict, files: dict) -> None:
         match arguments:
             case {
-                "target": str(),
+                "targets": str(),
             }:
                 pass
             case e:
                 raise ValueError(f"Invalid arguments {e}")
 
-        if not arguments["target"] in Config.ValidTargets:
-            raise ValueError(f"Invalid target '{arguments['target']}'")
+        targets = list(set(arguments["targets"].split(",")))
 
-        self.target = arguments["target"]
+        if len(targets) == 0:
+            raise ValueError("No targets specified")
+
+        for target in targets:
+            if target not in Config.ValidTargets:
+                raise ValueError(f"Invalid target {target}")
+
+        self.targets = targets
 
         self.title = arguments.get("title", "Untitled")
         self.author = arguments.get("author", "Unknown")
@@ -25,8 +31,8 @@ class Config:
 
         self.files = files
 
-    def get_target(self) -> str:
-        return self.target
+    def get_targets(self) -> list[str]:
+        return self.targets
 
     def get_title(self) -> str:
         return self.title

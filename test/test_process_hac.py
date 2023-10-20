@@ -1,8 +1,9 @@
+import base64
 import pytest
 
 from http import HTTPStatus
 
-from conftest import assert_title, assert_author, create_args
+from conftest import assert_title, assert_author, create_args, decode_json_object
 
 from flask.testing import FlaskClient
 
@@ -25,17 +26,22 @@ def test_no_icons(client: FlaskClient):
     response = client.post("/compile", query_string=args_query)
 
     assert response.status_code == HTTPStatus.OK
-    assert b"NRO0" in response.data
+    assert response.content_type == "application/json"
+
+    json_data = decode_json_object(response.data, 1)
+    binary_data = base64.b64decode(json_data.get("hac"))
+
+    assert b"NRO0" in binary_data
 
 
 @pytest.mark.parametrize(
     "metadata",
     [
-        {"target": "hac"},
-        {"title": "Test", "target": "hac"},
-        {"author": "Test", "target": "hac"},
-        {"description": "Test", "target": "hac"},
-        {"version": "1.0.0", "target": "hac"},
+        {"targets": "hac"},
+        {"title": "Test", "targets": "hac"},
+        {"author": "Test", "targets": "hac"},
+        {"description": "Test", "targets": "hac"},
+        {"version": "1.0.0", "targets": "hac"},
     ],
 )
 def test_default_metadata(client: FlaskClient, metadata: dict[str, str]):
@@ -52,27 +58,30 @@ def test_default_metadata(client: FlaskClient, metadata: dict[str, str]):
     response = client.post("/compile", query_string=metadata)
 
     assert response.status_code == HTTPStatus.OK
-    assert b"NRO0" in response.data
+    assert response.content_type == "application/json"
 
-    binary_size = int.from_bytes(response.data[0x18:0x22], "little")
+    json_data = decode_json_object(response.data, 1)
+    binary_data = base64.b64decode(json_data.get("hac"))
 
-    aset_data = response.data.find(b"ASET") + 0x08
+    assert b"NRO0" in binary_data
+
+    binary_size = int.from_bytes(binary_data[0x18:0x22], "little")
+
+    aset_data = binary_data.find(b"ASET") + 0x08
 
     default_title = "Untitled"
     default_author = "Unknown"
 
-    icon_section = response.data[aset_data + 0x00 : aset_data + 0x10]
+    icon_section = binary_data[aset_data + 0x00 : aset_data + 0x10]
     icon_offset, icon_size = int.from_bytes(icon_section[:8], "little"), int.from_bytes(
         icon_section[8:], "little"
     )
 
     nacp_start = binary_size + icon_offset + icon_size
-    nacp_titles = response.data[nacp_start : nacp_start + (0x300 * 0x0C)]
+    nacp_titles = binary_data[nacp_start : nacp_start + (0x300 * 0x0C)]
 
     struct_offset = 0
     for _ in range(0, 0x0C):
-        print(f"Iteration {_}")
-
         app_title = (
             nacp_titles[struct_offset : struct_offset + 0x200]
             .decode("utf-8")

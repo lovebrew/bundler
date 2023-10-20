@@ -3,11 +3,13 @@ from flask import Flask, request
 from flask_cors import CORS
 from hurry.filesize import size
 
+from http import HTTPStatus
+
 __SERVER_VERSION__ = "0.9.0"
 
 from lovebrew.consoles.ctr import Ctr
 
-from lovebrew.error import Error
+from lovebrew.error import Error, create_error
 from lovebrew.config import Config
 from lovebrew.command import Command
 from lovebrew.modes import Mode
@@ -57,15 +59,21 @@ def create_app(test_config=None, dev=False) -> Flask:
     def show_index() -> str:
         return __INDEX_PAGE__
 
-    def convert_which(which: str) -> tuple[str, Path]:
+    def convert_which(which: str) -> tuple[str, list[dict[str, str]]] | tuple[str, int]:
         """Converts a file to a given format
 
         Args:
             which (str): The format to convert to
 
         Returns:
-            Error | bytes: Error result
+            tuple[str, list[dict[str, str]]] : Success, json data
+            tuple[str, int]                  : Error, HTTP status code
         """
+
+        if len(request.files) == 0:
+            return Error.NO_FILE_UPLOADED, HTTPStatus.BAD_REQUEST
+
+        json_result = list()
 
         font_types = [".ttf", ".otf"]
         texture_types = [".png", ".jpg", ".jpeg"]
@@ -76,25 +84,23 @@ def create_app(test_config=None, dev=False) -> Flask:
             command = Ctr.FontTool
             valid_types = font_types
 
-        if len(request.files) == 0:
-            return "No file(s) uploaded", None
-
-        json_result = list()
-
         with tempfile.TemporaryDirectory() as temp_directory:
             for file_path, file_data in request.files.items():
                 filename = Path(temp_directory) / Path(file_path).name
 
                 if not filename.suffix in valid_types:
-                    return f"Invalid file type: {filename.suffix}", None
+                    return Error.INVALID_FILE_TYPE, HTTPStatus.UNSUPPORTED_MEDIA_TYPE
 
                 file_data.save(filename)
+
+                if filename.stat().st_size == 0:
+                    return Error.EMPTY_FILE, HTTPStatus.UNPROCESSABLE_ENTITY
 
                 converted_path = filename.with_suffix(f".{which}")
                 args = {"file": filename, "out": converted_path}
 
                 if (value := Command.execute(command, args)) != Error.NONE:
-                    return value, None
+                    return value, HTTPStatus.UNPROCESSABLE_ENTITY
 
                 file_result_path = (
                     Path(file_path).resolve().parent / converted_path.name
@@ -111,34 +117,34 @@ def create_app(test_config=None, dev=False) -> Flask:
         return Error.NONE, json_result
 
     @app.route("/convert/t3x", methods=["POST"])
-    def convert_t3x() -> tuple[str, int] | tuple[bytes, int]:
+    def convert_t3x() -> tuple[str, int, dict[str, str]]:
         """Converts a texture to a t3x file
 
         Returns:
-            tuple[str, int] | tuple[bytes, int]: Resulting error or binary data
+            tuple[str, int, dict[str, str]]: Resulting error or binary data, Http status code, Content type
         """
 
-        error, file_data = convert_which("t3x")
+        error, json_or_code = convert_which("t3x")
 
         if error != Error.NONE:
-            return error, 400
+            return create_error(error, json_or_code)
 
-        return file_data, 200
+        return create_error(json_or_code, HTTPStatus.OK, "application/json")
 
     @app.route("/convert/bcfnt", methods=["POST"])
-    def convert_bcfnt() -> tuple[str, int] | tuple[bytes, int]:
+    def convert_bcfnt() -> tuple[str, int, dict[str, str]]:
         """Converts a font to a bcfnt file
 
         Returns:
-            tuple[str, int] | tuple[bytes, int]: Resulting error or binary data
+            tuple[str, int, dict[str, str]]: Resulting error or binary data, Http status code, Content type
         """
 
-        error, file_data = convert_which("bcfnt")
+        error, json_or_code = convert_which("bcfnt")
 
         if error != Error.NONE:
-            return error, 400
+            return create_error(error, json_or_code)
 
-        return file_data, 200
+        return create_error(json_or_code, HTTPStatus.OK, "application/json")
 
     @app.route("/info", methods=["GET"])
     def info():
@@ -151,15 +157,19 @@ def create_app(test_config=None, dev=False) -> Flask:
         time_delta = (datetime.now() - __TIME__).total_seconds()
         system_uptime = str(timedelta(seconds=time_delta))
 
-        return {
-            "Server Time": datetime.now(),
-            "Deployed": __TIME__,
-            "Uptime": system_uptime,
-            "Version": __SERVER_VERSION__,
-        }
+        return (
+            {
+                "Server Time": datetime.now(),
+                "Deployed": __TIME__,
+                "Uptime": system_uptime,
+                "Version": __SERVER_VERSION__,
+            },
+            HTTPStatus.OK,
+            {"Content-Type": "application/json"},
+        )
 
     @app.route("/compile", methods=["POST"])
-    def compile() -> tuple[str, int] | tuple[bytes, int]:
+    def compile() -> tuple[str, int, dict[str, str]]:
         """Compiles homebrew data to the proper binary
 
         Returns:
@@ -172,18 +182,25 @@ def create_app(test_config=None, dev=False) -> Flask:
         try:
             config = Config(request.args, request.files)
         except ValueError as e:
-            return str(e), 400
+            return create_error(str(e), HTTPStatus.BAD_REQUEST)
 
-        with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as dir:
-            console = Mode[config.get_target().upper()].value()
-            build_dir = Path(dir)
+        json_data = dict()
 
-            error = console.build(build_dir, config)
+        for target in config.get_targets():
+            with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as dir:
+                console = Mode[target.upper()].value()
+                build_dir = Path(dir)
 
-            if error != Error.NONE and not isinstance(error, bytes):
-                return error, 400
+                error = console.build(build_dir, config)
 
-            binary_path = console.final_binary_path(build_dir, config.get_title())
-            return binary_path.read_bytes(), 200
+                if error != Error.NONE:
+                    return create_error(error, HTTPStatus.UNPROCESSABLE_ENTITY)
+
+                binary_path = console.final_binary_path(build_dir, config.get_title())
+
+                encoded_data = base64.b64encode(binary_path.read_bytes())
+                json_data[target] = encoded_data.decode("utf-8")
+
+        return create_error(json_data, HTTPStatus.OK, "application/json")
 
     return app

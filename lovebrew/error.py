@@ -1,7 +1,12 @@
 from enum import Enum, auto
 
+from http import HTTPStatus
+
 
 class Error(Enum):
+    # No error
+    NONE = auto()
+
     # Invalid console type
     TARGET_NOT_VALID = auto()
     # Command argument key invalid
@@ -10,12 +15,32 @@ class Error(Enum):
     COMMAND_FAILED = auto()
     # EXE not found
     COMMAND_EXE_NOT_FOUND = auto()
-    # Config version is mismatched
-    CONFIG_VERSION_MISMATCH = auto()
     # Description for metadata too long
     DESCRIPTION_TOO_LONG = auto()
-    # No error
-    NONE = auto()
+    # Invalid file type
+    INVALID_FILE_TYPE = auto()
+    # Width too large
+    WIDTH_TOO_LARGE = auto()
+    # Height too large
+    HEIGHT_TOO_LARGE = auto()
+    # Invalid icon dimensions
+    ICON_TOO_LARGE = auto()
+    # Nothing uploaded
+    NO_FILE_UPLOADED = auto()
+    # No query parameters
+    NO_PARAMETERS_SUPPLIED = auto()
+    # File is empty
+    EMPTY_FILE = auto()
 
-    def __str__(self):
-        return self.name
+
+def create_error(
+    message: str | Error,
+    code: int = HTTPStatus.OK,
+    content_type: str = "html/text",
+) -> tuple[str, int, dict[str, str]]:
+    """Creates an error response"""
+
+    if isinstance(message, Error):
+        message = message.name
+
+    return (message, code, {"Content-Type": content_type})
