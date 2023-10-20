@@ -35,3 +35,12 @@ def test_invalid_request(client, method):
             assert response.status_code == HTTPStatus.METHOD_NOT_ALLOWED
         case _:
             assert False
+
+
+@pytest.mark.parametrize("target", ["test", "test,example"])
+def test_invalid_targets(client: FlaskClient, target: str):
+    params = create_args("Test", "Testing", "Test Description", "0.1.0", target)
+    response = client.post("/compile", query_string=params)
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.content_type == "html/text"
