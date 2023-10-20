@@ -1,8 +1,6 @@
-from flask import url_for
 import pytest
 
 from flask.testing import FlaskClient
-import urllib
 
 from lovebrew import __SERVER_VERSION__
 
