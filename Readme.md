@@ -7,7 +7,7 @@ Web-based service for building games with LÖVE Potion
 1. Make sure you are running Python >= 3.11
 2. Clone this repository with `git clone --recurse-submodule https://github.com/lovebrew/lovebrew-webserver.git`
 3. Run `pip install .` inside the repository directory
-4. Alternatively, you can use [venv to avoid conflicts with your local packages](https://docs.python.org/3/library/venv.html).
+4. Alternatively, you can [use venv](https://docs.python.org/3/library/venv.html) to avoid conflicts with your local packages.
   - If you use Visual Studio Code, check [this page](https://code.visualstudio.com/docs/python/environments)
 
 ## Running
