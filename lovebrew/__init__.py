@@ -77,7 +77,7 @@ def create_app(test_config=None, dev=False) -> Flask:
             for file_name, file_storage in request.files.items():
                 media = Media(directory, file_name, file_storage)
 
-                if not media.is_valid():
+                if not media.is_valid(which):
                     return Error.INVALID_FILE_TYPE, HTTPStatus.UNSUPPORTED_MEDIA_TYPE
                 else:
                     if (value := media.is_valid_texture()) != Error.NONE:

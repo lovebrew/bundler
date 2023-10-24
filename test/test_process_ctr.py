@@ -20,6 +20,8 @@ from conftest import (
 
 from flask.testing import FlaskClient
 
+# region Icons
+
 
 def test_no_icons(client: FlaskClient):
     """
@@ -80,6 +82,12 @@ def test_custom_icon(client: FlaskClient):
     assert binary_data[:4] == b"3DSX"
 
 
+# endregion
+
+
+# region Metadata
+
+
 @pytest.mark.parametrize(
     "metadata",
     [
@@ -95,6 +103,7 @@ def test_default_metadata(client: FlaskClient, metadata: dict[str, str]):
     GIVEN a Flask application configured for testing
     WHEN the /data URL is POSTed
     AND the icons are not supplied
+    AND certain metadata is not supplied
     THEN check that the response is valid
 
     Args:
@@ -163,6 +172,11 @@ def test_default_metadata(client: FlaskClient, metadata: dict[str, str]):
             assert_author(author)
 
         smdh_data += 0x80
+
+
+# endregion
+
+# region Texture Convert
 
 
 @pytest.mark.parametrize("texture_name", ["lenny.png", "dio.jpg"])
@@ -245,6 +259,143 @@ def test_convert_texture_multi(client: FlaskClient):
     )
 
 
+def test_no_texture(client: FlaskClient):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the /convert/t3x URL is POSTed
+    AND the texture is NOT supplied
+    THEN check that the response is NOT valid
+
+    Args:
+        client (FlaskClient): The webserver client
+    """
+
+    response = client.post("/convert/t3x")
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.content_type == "html/text"
+
+
+@pytest.mark.parametrize("extension", ["png", "jpg", "jpeg"])
+def test_no_texture_data(client: FlaskClient, extension: str):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the /convert/t3x URL is POSTed
+    AND the texture is supplied
+    AND the texture is valid (.jpg, .jpeg, .png) but empty
+    THEN check that the response is NOT valid
+
+    Args:
+        client (FlaskClient): The webserver client
+    """
+
+    response = client.post(
+        "/convert/t3x",
+        content_type="multipart/form-data",
+        data={f"blank.{extension}": (io.BytesIO(b""), f"blank.{extension}")},
+    )
+
+    assert response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+    assert response.content_type == "html/text"
+
+
+@pytest.mark.parametrize(
+    "filename", ["chika.gif", "arial.fnt", "Perfect DOS VGA 437.ttf", "Oneday.otf"]
+)
+def test_invalid_texture(client: FlaskClient, filename: str):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the /convert/t3x URL is POSTed
+    AND the texture is supplied
+    AND the texture is not a valid type (.jpg, .jpeg, .png)
+    THEN check that the response is NOT valid
+
+    Args:
+        client (FlaskClient): The webserver client
+    """
+
+    file_path = resolve_path(filename)
+
+    response = client.post(
+        "/convert/t3x",
+        content_type="multipart/form-data",
+        data={
+            file_path.name: (
+                io.BytesIO(file_path.read_bytes()),
+                file_path.name,
+            )
+        },
+    )
+
+    assert response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+    assert response.content_type == "html/text"
+
+
+@pytest.mark.parametrize("filepath", ["cat_big_both.png", "cat_big_both.jpg"])
+def test_convert_big_dimensions_both(client: FlaskClient, filepath: str):
+    texture_path = resolve_path(filepath)
+
+    response = client.post(
+        "/convert/t3x",
+        content_type="multipart/form-data",
+        data={
+            str(texture_path): (
+                io.BytesIO(texture_path.read_bytes()),
+                texture_path.name,
+            )
+        },
+    )
+
+    assert response.content_type == "html/text"
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.data.decode("UTF-8") == "DIMENSIONS_TOO_LARGE"
+
+
+@pytest.mark.parametrize("filepath", ["cat_big_width.png", "cat_big_width.jpg"])
+def test_convert_big_dimensions_width(client: FlaskClient, filepath: str):
+    texture_path = resolve_path(filepath)
+
+    response = client.post(
+        "/convert/t3x",
+        content_type="multipart/form-data",
+        data={
+            str(texture_path): (
+                io.BytesIO(texture_path.read_bytes()),
+                texture_path.name,
+            )
+        },
+    )
+
+    assert response.content_type == "html/text"
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.data.decode("UTF-8") == "WIDTH_TOO_LARGE"
+
+
+@pytest.mark.parametrize("filepath", ["cat_big_height.png", "cat_big_height.jpg"])
+def test_convert_big_dimensions_height(client: FlaskClient, filepath: str):
+    texture_path = resolve_path(filepath)
+
+    response = client.post(
+        "/convert/t3x",
+        content_type="multipart/form-data",
+        data={
+            str(texture_path): (
+                io.BytesIO(texture_path.read_bytes()),
+                texture_path.name,
+            )
+        },
+    )
+
+    assert response.content_type == "html/text"
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.data.decode("UTF-8") == "HEIGHT_TOO_LARGE"
+
+
+# endregion
+
+# region Font Convert
+
+
 @pytest.mark.parametrize("font_name", ["Perfect DOS VGA 437.ttf", "Oneday.otf"])
 def test_convert_font_single(client: FlaskClient, font_name: str):
     """
@@ -322,46 +473,6 @@ def test_convert_font_multi(client: FlaskClient):
         assert font_data[:4] == b"CFNT"
 
 
-def test_no_texture(client: FlaskClient):
-    """
-    GIVEN a Flask application configured for testing
-    WHEN the /convert/t3x URL is POSTed
-    AND the texture is NOT supplied
-    THEN check that the response is NOT valid
-
-    Args:
-        client (FlaskClient): The webserver client
-    """
-
-    response = client.post("/convert/t3x")
-
-    assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.content_type == "html/text"
-
-
-@pytest.mark.parametrize("extension", ["png", "jpg", "jpeg"])
-def test_no_texture_data(client: FlaskClient, extension: str):
-    """
-    GIVEN a Flask application configured for testing
-    WHEN the /convert/t3x URL is POSTed
-    AND the texture is supplied
-    AND the texture is valid (.jpg, .jpeg, .png) but empty
-    THEN check that the response is NOT valid
-
-    Args:
-        client (FlaskClient): The webserver client
-    """
-
-    response = client.post(
-        "/convert/t3x",
-        content_type="multipart/form-data",
-        data={f"blank.{extension}": (io.BytesIO(b""), f"blank.{extension}")},
-    )
-
-    assert response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
-    assert response.content_type == "html/text"
-
-
 def test_no_font(client: FlaskClient):
     """
     GIVEN a Flask application configured for testing
@@ -402,90 +513,29 @@ def test_no_font_data(client: FlaskClient, extension: str):
     assert response.content_type == "html/text"
 
 
-def test_invalid_texture_type(client: FlaskClient):
+@pytest.mark.parametrize("filename", ["chika.gif", "dio.jpg", "lenny.png", "arial.fnt"])
+def test_invalid_font(client: FlaskClient, filename: str):
     """
     GIVEN a Flask application configured for testing
-    WHEN the /convert/t3x URL is POSTed
-    AND the texture is supplied
-    AND the texture is not a valid type (.jpg, .jpeg, .png)
+    WHEN the /convert/bcfnt URL is POSTed
+    AND a file is supplied
+    AND the font is NOT valid (not .ttf, .otf)
     THEN check that the response is NOT valid
 
     Args:
-        client (FlaskClient): The webserver client
+        client (FlaskClient): _description_
+        filename (str): _description_
     """
 
-    texture_path = resolve_path("chika.gif")
-
+    file_path = resolve_path(filename)
     response = client.post(
-        "/convert/t3x",
+        "/convert/bcfnt",
         content_type="multipart/form-data",
-        data={
-            str(texture_path): (
-                io.BytesIO(texture_path.read_bytes()),
-                texture_path.name,
-            )
-        },
+        data={file_path.name: (io.BytesIO(file_path.read_bytes()), file_path.name)},
     )
 
     assert response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
     assert response.content_type == "html/text"
 
 
-@pytest.mark.parametrize("filepath", ["cat_big_both.png", "cat_big_both.jpg"])
-def test_convert_big_dimensions_both(client: FlaskClient, filepath: str):
-    texture_path = resolve_path(filepath)
-
-    response = client.post(
-        "/convert/t3x",
-        content_type="multipart/form-data",
-        data={
-            str(texture_path): (
-                io.BytesIO(texture_path.read_bytes()),
-                texture_path.name,
-            )
-        },
-    )
-
-    assert response.content_type == "html/text"
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert response.data.decode("UTF-8") == "DIMENSIONS_TOO_LARGE"
-
-
-@pytest.mark.parametrize("filepath", ["cat_big_width.png", "cat_big_width.jpg"])
-def test_convert_big_dimensions_width(client: FlaskClient, filepath: str):
-    texture_path = resolve_path(filepath)
-
-    response = client.post(
-        "/convert/t3x",
-        content_type="multipart/form-data",
-        data={
-            str(texture_path): (
-                io.BytesIO(texture_path.read_bytes()),
-                texture_path.name,
-            )
-        },
-    )
-
-    assert response.content_type == "html/text"
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert response.data.decode("UTF-8") == "WIDTH_TOO_LARGE"
-
-
-@pytest.mark.parametrize("filepath", ["cat_big_height.png", "cat_big_height.jpg"])
-def test_convert_big_dimensions_height(client: FlaskClient, filepath: str):
-    texture_path = resolve_path(filepath)
-
-    response = client.post(
-        "/convert/t3x",
-        content_type="multipart/form-data",
-        data={
-            str(texture_path): (
-                io.BytesIO(texture_path.read_bytes()),
-                texture_path.name,
-            )
-        },
-    )
-
-    assert response.content_type == "html/text"
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert response.data.decode("UTF-8") == "HEIGHT_TOO_LARGE"
+# endregion

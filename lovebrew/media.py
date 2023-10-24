@@ -82,14 +82,15 @@ class Media:
 
         return Error.NONE
 
-    def is_valid(self) -> bool:
+    def is_valid(self, mode: str) -> bool:
         """Returns whether or not the file is valid
 
         Returns:
             bool: True if valid, False if not
         """
 
-        return self.is_valid_size() and (self.is_font() or self.is_texture())
+        valid_data = self.is_font() if mode == "bcfnt" else self.is_texture()
+        return self.is_valid_size() and valid_data
 
     def get_filepath(self) -> str:
         """Returns the filepath of the file
