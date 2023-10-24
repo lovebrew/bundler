@@ -37,7 +37,7 @@ class Cafe(Console):
             "name": metadata.get_title(),
             "short_name": metadata.get_title(),
             "author": metadata.get_author(),
-            "icon": icon_data,
+            "icon": icon_path,
         }
 
         if (value := Command.execute(Cafe.BinTool, args)) != Error.NONE:

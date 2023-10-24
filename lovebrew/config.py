@@ -53,16 +53,27 @@ class Config:
         return self.app_version
 
     def get_icon(self, directory: Path, type: str) -> Path:
+        """Gets a custom icon for the specified target
+
+        Args:
+            directory (Path): Temporary directory to store the icon
+            type (str): The target to get the icon for
+
+        Returns:
+            Path: The path to the icon
+            None: If no icon is found (uses default)
+        """
+
         assert type in Config.ValidTargets
 
         if f"icon-{type}" not in self.files:
             return None
 
-        icon_data = (directory / f"icon-{type}").as_posix()
+        icon_data = directory / f"icon-{type}"
         self.files[f"icon-{type}"].save(icon_data)
 
         icon_mime = "image/jpeg" if type == "hac" else "image/png"
         if not magic.from_buffer(icon_data.read_bytes(), mime=True) == icon_mime:
             return None
 
-        return icon_data
+        return icon_data.as_posix()

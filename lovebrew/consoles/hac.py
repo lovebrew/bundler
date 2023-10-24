@@ -34,7 +34,7 @@ class Hac(Console):
 
         args = {
             "nacp": build_dir / f"{metadata.get_title()}.nacp",
-            "icon": icon_data,
+            "icon": icon_path,
             "romfs": self.path_to("files.romfs"),
             "elf": self.binary_path(),
             "output": build_dir / metadata.get_title(),
