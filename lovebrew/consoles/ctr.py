@@ -15,9 +15,12 @@ class Ctr(Console):
         super().__init__("ctr")
 
     def build(self, build_dir: Path, metadata: Config) -> str | Error:
-        icon_data = self.icon_file()
+        icon_path = self.icon_file()
         if (value := metadata.get_icon(build_dir, self.type)) is not None:
-            icon_data = value
+            icon_path = value
+
+        if (value := self.validate_icon(icon_path)) != Error.NONE:
+            return value
 
         if (len(metadata.get_description()) + len(metadata.get_version())) > 256:
             return Error.DESCRIPTION_TOO_LONG.name
@@ -26,7 +29,7 @@ class Ctr(Console):
             "name": metadata.get_title(),
             "desc": f"{metadata.get_description()} • {metadata.get_version()}",
             "author": metadata.get_author(),
-            "icon": icon_data,
+            "icon": icon_path,
             "out": build_dir / metadata.get_title(),
         }
 
@@ -52,3 +55,6 @@ class Ctr(Console):
 
     def icon_extension(self) -> str:
         return "png"
+
+    def icon_size(self) -> tuple[int, int]:
+        return (48, 48)

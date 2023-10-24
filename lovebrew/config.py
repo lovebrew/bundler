@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import PIL
+import magic
+
 
 class Config:
     ValidTargets = ["ctr", "hac", "cafe"]
@@ -57,5 +60,9 @@ class Config:
 
         icon_data = (directory / f"icon-{type}").as_posix()
         self.files[f"icon-{type}"].save(icon_data)
+
+        icon_mime = "image/jpeg" if type == "hac" else "image/png"
+        if not magic.from_buffer(icon_data.read_bytes(), mime=True) == icon_mime:
+            return None
 
         return icon_data

@@ -15,9 +15,12 @@ class Cafe(Console):
         super().__init__("cafe")
 
     def build(self, build_dir: Path, metadata: Config) -> str | Error:
-        icon_data = self.icon_file()
+        icon_path = self.icon_file()
         if (value := metadata.get_icon(build_dir, self.type)) is not None:
-            icon_data = value
+            icon_path = value
+
+        if (value := self.validate_icon(icon_path)) != Error.NONE:
+            return value
 
         args = {
             "elf": self.binary_path(),
@@ -47,3 +50,6 @@ class Cafe(Console):
 
     def icon_extension(self) -> str:
         return "png"
+
+    def icon_size(self) -> tuple[int, int]:
+        return (128, 128)

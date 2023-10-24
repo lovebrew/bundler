@@ -2,6 +2,8 @@ import errno
 import os
 from pathlib import Path
 
+import PIL
+
 from lovebrew.error import Error
 
 
@@ -21,6 +23,20 @@ class Console:
 
     def binary_extension(self) -> str:
         raise NotImplementedError
+
+    def icon_size(self) -> tuple[int, int]:
+        raise NotImplementedError
+
+    def validate_icon(self, icon: Path) -> str | Error:
+        """
+        Validates the icon file.
+        """
+        image = PIL.Image.open(icon)
+
+        if image.size == self.icon_size():
+            return Error.NONE
+
+        return Error.INVALID_ICON_SIZE.name
 
     def icon_file(self) -> Path:
         extension = self.icon_extension()

@@ -15,9 +15,12 @@ class Hac(Console):
         super().__init__("hac")
 
     def build(self, build_dir: Path, metadata: Config) -> str | Error:
-        icon_data = self.icon_file()
+        icon_path = self.icon_file()
         if (value := metadata.get_icon(build_dir, self.type)) is not None:
-            icon_data = value
+            icon_path = value
+
+        if (value := self.validate_icon(icon_path)) != Error.NONE:
+            return value
 
         args = {
             "name": metadata.get_title(),
@@ -47,3 +50,6 @@ class Hac(Console):
 
     def icon_extension(self) -> str:
         return "jpg"
+
+    def icon_size(self) -> tuple[int, int]:
+        return (256, 256)
