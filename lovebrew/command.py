@@ -21,3 +21,18 @@ class Command:
             return f"{Error.COMMAND_EXE_NOT_FOUND.name} ('{__args[0]}')"
 
         return Error.NONE
+
+    @staticmethod
+    def execute_memory(command: str, input: bytes) -> Error | bytes:
+        try:
+            __args = shlex.split(command)
+            completed_process = subprocess.run(
+                __args, input=input, check=True, capture_output=True
+            )
+
+            if completed_process.returncode != 0:
+                return f"{Error.COMMAND_FAILED.name}: {command}"
+        except subprocess.CalledProcessError as e:
+            return f"{Error.COMMAND_FAILED.name}: {e} ({e.stderr}))"
+
+        return completed_process.stdout

@@ -10,8 +10,6 @@ from lovebrew.error import Error
 class Ctr(Console):
     SmdhTool = 'smdhtool --create "{name}" "{desc}" "{author}" "{icon}" "{out}.smdh"'
     BinTool = '3dsxtool "{elf}" "{output}.3dsx" --smdh="{smdh}.smdh" --romfs="{romfs}"'
-    TexTool = 'tex3ds -f rgba8888 -z auto "{file}" -o "{out}"'
-    FontTool = 'mkbcfnt "{file}" -o "{out}"'
 
     def __init__(self) -> None:
         super().__init__("ctr")

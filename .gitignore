@@ -7,4 +7,4 @@ ngrok.sh
 .vs
 build
 LOVEBrew.egg-info
-venv
+.venv

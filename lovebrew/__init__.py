@@ -5,13 +5,12 @@ from hurry.filesize import size
 
 from http import HTTPStatus
 
-__SERVER_VERSION__ = "0.9.0"
+from lovebrew.media import Media
 
-from lovebrew.consoles.ctr import Ctr
+__SERVER_VERSION__ = "0.9.0"
 
 from lovebrew.error import Error, create_error
 from lovebrew.config import Config
-from lovebrew.command import Command
 from lovebrew.modes import Mode
 
 from datetime import datetime, timedelta
@@ -19,7 +18,6 @@ from pathlib import Path
 
 import time
 import tempfile
-
 
 __NAME__ = "LÖVEBrew"
 __TIME__ = datetime.now()
@@ -75,44 +73,25 @@ def create_app(test_config=None, dev=False) -> Flask:
 
         json_result = list()
 
-        font_types = [".ttf", ".otf"]
-        texture_types = [".png", ".jpg", ".jpeg"]
+        with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as directory:
+            for file_name, file_storage in request.files.items():
+                media = Media(directory, file_name, file_storage)
 
-        command = Ctr.TexTool
-        valid_types = texture_types
-        if which == "bcfnt":
-            command = Ctr.FontTool
-            valid_types = font_types
-
-        with tempfile.TemporaryDirectory() as temp_directory:
-            for file_path, file_data in request.files.items():
-                filename = Path(temp_directory) / Path(file_path).name
-
-                if not filename.suffix in valid_types:
+                if not media.is_valid():
                     return Error.INVALID_FILE_TYPE, HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+                else:
+                    if (value := media.is_valid_texture()) != Error.NONE:
+                        return value, HTTPStatus.UNPROCESSABLE_ENTITY
 
-                file_data.save(filename)
+                    error_or_result = media.convert()
 
-                if filename.stat().st_size == 0:
-                    return Error.EMPTY_FILE, HTTPStatus.UNPROCESSABLE_ENTITY
+                    if isinstance(error_or_result, str):
+                        return error_or_result, HTTPStatus.UNPROCESSABLE_ENTITY
 
-                converted_path = filename.with_suffix(f".{which}")
-                args = {"file": filename, "out": converted_path}
+                    encoded = base64.b64encode(error_or_result).decode("utf-8")
+                    file_path = Path(file_name).with_suffix(f".{which}").as_posix()
 
-                if (value := Command.execute(command, args)) != Error.NONE:
-                    return value, HTTPStatus.UNPROCESSABLE_ENTITY
-
-                file_result_path = (
-                    Path(file_path).resolve().parent / converted_path.name
-                )
-                file_bytes = converted_path.read_bytes()
-
-                json_result.append(
-                    {
-                        "filepath": str(file_result_path),
-                        "data": base64.b64encode(file_bytes).decode("utf-8"),
-                    }
-                )
+                    json_result.append({"filepath": file_path, "data": encoded})
 
         return Error.NONE, json_result
 

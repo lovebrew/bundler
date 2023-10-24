@@ -197,7 +197,7 @@ def test_convert_texture_single(client: FlaskClient, texture_name: str):
     json_data = decode_json_array(response.data, 1)
 
     texture_filepath = json_data[0].get("filepath")
-    assert texture_filepath == str(texture_path.with_suffix(".t3x"))
+    assert texture_filepath == texture_path.with_suffix(".t3x").as_posix()
 
 
 def test_convert_texture_multi(client: FlaskClient):
@@ -233,10 +233,16 @@ def test_convert_texture_multi(client: FlaskClient):
     json_data = decode_json_array(response.data, 2)
 
     texture_filepath = json_data[0].get("filepath")
-    assert texture_filepath == str(resolve_path(texture_names[0]).with_suffix(".t3x"))
+    assert (
+        texture_filepath
+        == resolve_path(texture_names[0]).with_suffix(".t3x").as_posix()
+    )
 
     texture_filepath = json_data[1].get("filepath")
-    assert texture_filepath == str(resolve_path(texture_names[1]).with_suffix(".t3x"))
+    assert (
+        texture_filepath
+        == resolve_path(texture_names[1]).with_suffix(".t3x").as_posix()
+    )
 
 
 @pytest.mark.parametrize("font_name", ["Perfect DOS VGA 437.ttf", "Oneday.otf"])
@@ -260,13 +266,14 @@ def test_convert_font_single(client: FlaskClient, font_name: str):
         data={str(font_path): (io.BytesIO(font_path.read_bytes()), font_name)},
     )
 
+    assert response.mimetype == "application/json"
     assert response.status_code == HTTPStatus.OK
 
     json_array = json.loads(response.data)
     assert 1 == len(json_array)
 
     font_filepath = json_array[0].get("filepath")
-    assert font_filepath == str(font_path.with_suffix(".bcfnt"))
+    assert font_filepath == font_path.with_suffix(".bcfnt").as_posix()
 
     font_data_b64 = json_array[0].get("data")
     assert font_data_b64 is not None
@@ -302,6 +309,7 @@ def test_convert_font_multi(client: FlaskClient):
         data=font_paths,
     )
 
+    assert response.mimetype == "application/json"
     assert response.status_code == HTTPStatus.OK
 
     json_array = json.loads(response.data)
@@ -350,7 +358,7 @@ def test_no_texture_data(client: FlaskClient, extension: str):
         data={f"blank.{extension}": (io.BytesIO(b""), f"blank.{extension}")},
     )
 
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
     assert response.content_type == "html/text"
 
 
@@ -390,7 +398,7 @@ def test_no_font_data(client: FlaskClient, extension: str):
         data={f"blank.{extension}": (io.BytesIO(b""), f"blank.{extension}")},
     )
 
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
     assert response.content_type == "html/text"
 
 
