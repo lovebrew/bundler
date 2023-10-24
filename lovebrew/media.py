@@ -72,6 +72,9 @@ class Media:
         except Exception:
             return Error.INVALID_FILE_TYPE
 
+        if size[0] > 1024 and size[1] > 1024:
+            return Error.DIMENSIONS_TOO_LARGE
+
         if size[0] > 1024:
             return Error.WIDTH_TOO_LARGE
         elif size[1] > 1024:

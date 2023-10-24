@@ -23,6 +23,8 @@ class Error(Enum):
     WIDTH_TOO_LARGE = auto()
     # Height too large
     HEIGHT_TOO_LARGE = auto()
+    # Dimensions too large
+    DIMENSIONS_TOO_LARGE = auto()
     # Invalid icon dimensions
     ICON_TOO_LARGE = auto()
     # Nothing uploaded

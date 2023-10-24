@@ -429,3 +429,63 @@ def test_invalid_texture_type(client: FlaskClient):
 
     assert response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
     assert response.content_type == "html/text"
+
+
+@pytest.mark.parametrize("filepath", ["cat_big_both.png", "cat_big_both.jpg"])
+def test_convert_big_dimensions_both(client: FlaskClient, filepath: str):
+    texture_path = resolve_path(filepath)
+
+    response = client.post(
+        "/convert/t3x",
+        content_type="multipart/form-data",
+        data={
+            str(texture_path): (
+                io.BytesIO(texture_path.read_bytes()),
+                texture_path.name,
+            )
+        },
+    )
+
+    assert response.content_type == "html/text"
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.data.decode("UTF-8") == "DIMENSIONS_TOO_LARGE"
+
+
+@pytest.mark.parametrize("filepath", ["cat_big_width.png", "cat_big_width.jpg"])
+def test_convert_big_dimensions_width(client: FlaskClient, filepath: str):
+    texture_path = resolve_path(filepath)
+
+    response = client.post(
+        "/convert/t3x",
+        content_type="multipart/form-data",
+        data={
+            str(texture_path): (
+                io.BytesIO(texture_path.read_bytes()),
+                texture_path.name,
+            )
+        },
+    )
+
+    assert response.content_type == "html/text"
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.data.decode("UTF-8") == "WIDTH_TOO_LARGE"
+
+
+@pytest.mark.parametrize("filepath", ["cat_big_height.png", "cat_big_height.jpg"])
+def test_convert_big_dimensions_height(client: FlaskClient, filepath: str):
+    texture_path = resolve_path(filepath)
+
+    response = client.post(
+        "/convert/t3x",
+        content_type="multipart/form-data",
+        data={
+            str(texture_path): (
+                io.BytesIO(texture_path.read_bytes()),
+                texture_path.name,
+            )
+        },
+    )
+
+    assert response.content_type == "html/text"
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.data.decode("UTF-8") == "HEIGHT_TOO_LARGE"
