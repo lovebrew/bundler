@@ -37,6 +37,17 @@ def test_invalid_request(client, method):
 
 @pytest.mark.parametrize("target", ["test", "test,example"])
 def test_invalid_targets(client: FlaskClient, target: str):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the /compile URL is POSTed
+    AND the target is invalid
+    THEN check that the response is invalid
+
+    Args:
+        client (FlaskClient): The webserver client
+        target (str): The target
+    """
+
     params = create_args("Test", "Testing", "Test Description", "0.1.0", target)
     response = client.post("/compile", query_string=params)
 

@@ -1,15 +1,22 @@
 import base64
+import io
 import pytest
 
 from http import HTTPStatus
 
-from conftest import assert_title, assert_author, create_args, decode_json_object
+from conftest import (
+    assert_title,
+    assert_author,
+    create_args,
+    decode_json_object,
+    resolve_path,
+)
 
 from flask.testing import FlaskClient
 
 
 def test_no_icons(client: FlaskClient):
-    """_summary_
+    """
     GIVEN a Flask application configured for testing
     WHEN the /data URL is POSTed
     AND the icons are not supplied
@@ -32,6 +39,40 @@ def test_no_icons(client: FlaskClient):
     binary_data = base64.b64decode(json_data.get("hac"))
 
     assert b"NRO0" in binary_data
+
+
+def test_custom_icon(client: FlaskClient):
+    """
+    GIVEN a Flask application configured for testing
+    WHEN the /data URL is POSTed
+    AND the icons are supplied
+    THEN check that the response is valid
+
+    Args:
+        client (Flask): The webserver client
+    """
+
+    args_query = create_args(
+        "Test Name", "Test Description", "Test Author", "0.0.0", "hac"
+    )
+
+    icon_data = resolve_path("icon256.jpg")
+
+    response = client.post(
+        "/compile",
+        query_string=args_query,
+        data={"icon-hac": (io.BytesIO(icon_data.read_bytes()), "icon-hac.png")},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.content_type == "application/json"
+
+    json_data = decode_json_object(response.data, 1)
+    binary_data = base64.b64decode(json_data.get("hac"))
+
+    assert b"NRO0" in binary_data
+    assert icon_data.read_bytes() in binary_data
 
 
 @pytest.mark.parametrize(
