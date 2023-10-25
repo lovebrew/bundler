@@ -13,6 +13,7 @@ dependencies = [
     "hurry.filesize",
     "toml",
     "python-magic",
+    "python-magic-bin",
     "pillow",
 ]
 version = "0.9.0"
