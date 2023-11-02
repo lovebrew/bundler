@@ -1,53 +1,34 @@
+import base64
 import pytest
 
 from http import HTTPStatus
-import io
-import zipfile
 
-from conftest import modify_config_values, create_zip_archive, fetch
+from conftest import create_args, decode_json_object
+
+from flask.testing import FlaskClient
 
 
-@pytest.mark.parametrize("version", [2, 3])
-def test_build_cafe(client, version: int):
+def test_no_icons(client: FlaskClient):
     """
     GIVEN a Flask application configured for testing
-    WHEN a valid game is uploaded
-    THEN check that the resulting zipfile contains a .wuhb file
+    WHEN the /data URL is POSTed
+    AND the icons are not supplied
+    THEN check that the response is valid
 
     Args:
-        client  (Flask): The webserver client
-        version (int)  : The LÖVE Potion version
+        client (Flask): The webserver client
     """
 
-    toml_file = modify_config_values(
-        "build", [{"targets": ["cafe"], "app_version": version}]
+    args_query = create_args(
+        "Test Name", "Test Description", "Test Author", "0.0.0", "cafe"
     )
-    assert toml_file is not None
 
-    game_data = create_zip_archive(
-        {
-            "main.lua": fetch("main.lua"),
-            "lenny.png": fetch("lenny.png"),
-            "Perfect DOS VGA 437.ttf": fetch("Perfect DOS VGA 437.ttf"),
-        }
-    )
-    assert game_data is not None
-
-    root_data = create_zip_archive({"lovebrew.toml": toml_file, "game.zip": game_data})
-
-    response = client.post(
-        "/data",
-        content_type="multipart/form-data",
-        data={"content": (io.BytesIO(root_data), "content.zip")},
-    )
+    response = client.post("/compile", query_string=args_query)
 
     assert response.status_code == HTTPStatus.OK
+    assert response.content_type == "application/json"
 
-    has_file = False
-    with zipfile.ZipFile(io.BytesIO(response.data), "r") as archive:
-        has_file = any("wuhb" in filename for filename in archive.namelist())
+    json_data = decode_json_object(response.data, 1)
+    binary_data = base64.b64decode(json_data.get("cafe"))
 
-    if version == 2:
-        assert has_file == False
-    else:
-        assert has_file == True
+    assert binary_data[:4] == b"WUHB"

@@ -1,33 +1,27 @@
-from multiprocessing import Value
-import tomllib
-from flask import Flask, jsonify, request, render_template
+import base64
+from flask import Flask, request
 from flask_cors import CORS
 from hurry.filesize import size
 
-from lovebrew.process import (
-    validate_input_file,
-    validate_version,
-    build_target,
-    __SERVER_VERSION__,
-)
-from lovebrew.error import Error
+from http import HTTPStatus
+
+from lovebrew.media import Media
+
+__SERVER_VERSION__ = "0.9.0"
+
+from lovebrew.error import Error, create_error
 from lovebrew.config import Config
-from lovebrew.logfile import LogFile
+from lovebrew.modes import Mode
 
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import time
 import tempfile
-import zipfile
-import io
-import os
 
 __NAME__ = "LÖVEBrew"
 __TIME__ = datetime.now()
 __START__ = time.time()
-
-__TARGET_EXTENSIONS__ = {"ctr": "3dsx", "hac": "nro", "cafe": "wuhb"}
 
 ConfigFile = None
 __INDEX_PAGE__ = None
@@ -63,100 +57,129 @@ def create_app(test_config=None, dev=False) -> Flask:
     def show_index() -> str:
         return __INDEX_PAGE__
 
+    def convert_which(which: str) -> tuple[str, list[dict[str, str]]] | tuple[str, int]:
+        """Converts a file to a given format
+
+        Args:
+            which (str): The format to convert to
+
+        Returns:
+            tuple[str, list[dict[str, str]]] : Success, json data
+            tuple[str, int]                  : Error, HTTP status code
+        """
+
+        if len(request.files) == 0:
+            return Error.NO_FILE_UPLOADED, HTTPStatus.BAD_REQUEST
+
+        json_result = list()
+
+        with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as directory:
+            for file_name, file_storage in request.files.items():
+                media = Media(directory, file_name, file_storage)
+
+                if not media.is_valid(which):
+                    return Error.INVALID_FILE_TYPE, HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+                else:
+                    if (value := media.is_valid_texture()) != Error.NONE:
+                        return value, HTTPStatus.UNPROCESSABLE_ENTITY
+
+                    error_or_result = media.convert()
+
+                    if isinstance(error_or_result, str):
+                        return error_or_result, HTTPStatus.UNPROCESSABLE_ENTITY
+
+                    encoded = base64.b64encode(error_or_result).decode("utf-8")
+                    file_path = Path(file_name).with_suffix(f".{which}").as_posix()
+
+                    json_result.append({"filepath": file_path, "data": encoded})
+
+        return Error.NONE, json_result
+
+    @app.route("/convert/t3x", methods=["POST"])
+    def convert_t3x() -> tuple[str, int, dict[str, str]]:
+        """Converts a texture to a t3x file
+
+        Returns:
+            tuple[str, int, dict[str, str]]: Resulting error or binary data, Http status code, Content type
+        """
+
+        error, json_or_code = convert_which("t3x")
+
+        if error != Error.NONE:
+            return create_error(error, json_or_code)
+
+        return create_error(json_or_code, HTTPStatus.OK, "application/json")
+
+    @app.route("/convert/bcfnt", methods=["POST"])
+    def convert_bcfnt() -> tuple[str, int, dict[str, str]]:
+        """Converts a font to a bcfnt file
+
+        Returns:
+            tuple[str, int, dict[str, str]]: Resulting error or binary data, Http status code, Content type
+        """
+
+        error, json_or_code = convert_which("bcfnt")
+
+        if error != Error.NONE:
+            return create_error(error, json_or_code)
+
+        return create_error(json_or_code, HTTPStatus.OK, "application/json")
+
     @app.route("/info", methods=["GET"])
     def info():
+        """Display the information of the web server
+
+        Returns:
+            str: The information of the web server
+        """
+
         time_delta = (datetime.now() - __TIME__).total_seconds()
         system_uptime = str(timedelta(seconds=time_delta))
 
-        return jsonify(
+        return (
             {
                 "Server Time": datetime.now(),
                 "Deployed": __TIME__,
                 "Uptime": system_uptime,
                 "Version": __SERVER_VERSION__,
-            }
+            },
+            HTTPStatus.OK,
+            {"Content-Type": "application/json"},
         )
 
-    @app.route("/data", methods=["POST"])
-    def data():
-        # make sure the user uploaded files
-        if not "content" in request.files:
-            return Error.NO_CONTENT_PACKAGE.name, 400
+    @app.route("/compile", methods=["POST"])
+    def compile() -> tuple[str, int, dict[str, str]]:
+        """Compiles homebrew data to the proper binary
 
-        if (value := validate_input_file(request.files["content"])) != Error.NONE:
-            return value, 400
+        Returns:
+            Error message or binary data
+        """
 
-        # load the zip archive into memory
-        archive = zipfile.ZipFile(request.files["content"], "r")
-
-        # check that our config file exists
-        if "lovebrew.toml" not in archive.namelist():
-            return Error.MISSING_CONFIG_FILE.name, 400
-
-        # load the toml config
-        toml_data = archive.read("lovebrew.toml").decode("utf-8")
+        if len(list(request.args.keys())) == 0:
+            return "No arguments supplied", 400
 
         try:
-            global ConfigFile
-            ConfigFile = Config(toml_data)
-        except tomllib.TOMLDecodeError:
-            return Error.INVALID_CONFIG_DATA.name, 400
-        except KeyError as e:
-            return f"{Error.INVALID_CONFIG_DATA.name}: {e}", 400
+            config = Config(request.args, request.files)
         except ValueError as e:
-            return f"{Error.INVALID_CONFIG_DATA.name}: {e}", 400
+            return create_error(str(e), HTTPStatus.BAD_REQUEST)
 
-        # validate version against allowed server versions
-        if (value := validate_version(ConfigFile.version())) != Error.NONE:
-            return value, 400
+        json_data = dict()
 
-        zip_name_base = ConfigFile.source()
+        for target in config.get_targets():
+            with tempfile.TemporaryDirectory(dir=tempfile.gettempdir()) as dir:
+                console = Mode[target.upper()].value()
+                build_dir = Path(dir)
 
-        # check that our game zip file exists
-        if f"{zip_name_base}.zip" not in archive.namelist():
-            return Error.MISSING_GAME_CONTENT.name, 400
+                error = console.build(build_dir, config)
 
-        # set the game data for metadata
-        icon_data = dict()
+                if error != Error.NONE:
+                    return create_error(error, HTTPStatus.UNPROCESSABLE_ENTITY)
 
-        if ConfigFile.has_icons():
-            icon_dict = ConfigFile.icons()
+                binary_path = console.final_binary_path(build_dir, config.get_title())
 
-            for console in icon_dict:
-                icon_file = Path(icon_dict[console]).as_posix()
-                if icon_file != "" and str(icon_file) in archive.namelist():
-                    icon_data[console] = archive.read(str(icon_file))
+                encoded_data = base64.b64encode(binary_path.read_bytes())
+                json_data[target] = encoded_data.decode("utf-8")
 
-        data = [archive.read(f"{zip_name_base}.zip"), icon_data]
-
-        game_title = ConfigFile.title()
-        build_data = None
-
-        metadata = {
-            "title": game_title,
-            "description": ConfigFile.description(),
-            "author": ConfigFile.author(),
-            "version": ConfigFile.version(),
-            "app_version": ConfigFile.app_version(),
-        }
-
-        with tempfile.SpooledTemporaryFile() as temp_file:
-            with zipfile.ZipFile(temp_file, "w") as zip_data:
-                for console in ConfigFile.targets():
-                    data_or_error, code = build_target(console.upper(), data, metadata)
-
-                    if code != 200:
-                        LogFile.crit(data_or_error + "\n")
-                        continue
-
-                    extension = __TARGET_EXTENSIONS__[console]
-                    zip_data.writestr(f"{game_title}.{extension}", data_or_error)
-
-                zip_data.writestr("debug.log", LogFile.get_content())
-
-            temp_file.seek(0, io.SEEK_SET)
-            build_data = temp_file.read()
-
-        return build_data, 200
+        return create_error(json_data, HTTPStatus.OK, "application/json")
 
     return app

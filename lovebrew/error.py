@@ -1,16 +1,13 @@
 from enum import Enum, auto
 
+from http import HTTPStatus
+
 
 class Error(Enum):
-    # No valid package data sent
-    NO_CONTENT_PACKAGE = 0
-    # Packaged content is not a zip file
-    CONTENT_NON_ZIP_FILE = auto()
-    # Could not find 'lovebrew.toml' in the package
-    MISSING_CONFIG_FILE = auto()
-    # Could not find 'game.zip' in the package
-    MISSING_GAME_CONTENT = auto()
-    # Target is not valid
+    # No error
+    NONE = auto()
+
+    # Invalid console type
     TARGET_NOT_VALID = auto()
     # Command argument key invalid
     COMMAND_ARGUMENT_NOT_FOUND = auto()
@@ -18,22 +15,34 @@ class Error(Enum):
     COMMAND_FAILED = auto()
     # EXE not found
     COMMAND_EXE_NOT_FOUND = auto()
-    # Invalid version info
-    INVALID_VERSION_SPECIFIED = auto()
-    # Outdated config file
-    OUTDATED_CONFIG = auto()
-    # Invalid config data
-    INVALID_CONFIG_DATA = auto()
-    # Wii U not allowed
-    CAFE_INVALID_ON_APP_VERSION_2 = auto()
-    # Invalid permission, use website
-    INVALID_METHOD_USE_WEBSITE = auto()
-    # Config version is mismatched
-    CONFIG_VERSION_MISMATCH = auto()
-    # Content zip is too large
-    CONTENT_ZIP_TOO_LARGE = auto()
-    # No error
-    NONE = auto()
+    # Description for metadata too long
+    DESCRIPTION_TOO_LONG = auto()
+    # Invalid file type
+    INVALID_FILE_TYPE = auto()
+    # Width too large
+    WIDTH_TOO_LARGE = auto()
+    # Height too large
+    HEIGHT_TOO_LARGE = auto()
+    # Dimensions too large
+    DIMENSIONS_TOO_LARGE = auto()
+    # Invalid icon dimensions
+    ICON_TOO_LARGE = auto()
+    # Nothing uploaded
+    NO_FILE_UPLOADED = auto()
+    # No query parameters
+    NO_PARAMETERS_SUPPLIED = auto()
+    # File is empty
+    EMPTY_FILE = auto()
 
-    def __str__(self):
-        return self.name
+
+def create_error(
+    message: str | Error,
+    code: int = HTTPStatus.OK,
+    content_type: str = "html/text",
+) -> tuple[str, int, dict[str, str]]:
+    """Creates an error response"""
+
+    if isinstance(message, Error):
+        message = message.name
+
+    return (message, code, {"Content-Type": content_type})

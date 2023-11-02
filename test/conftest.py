@@ -1,8 +1,6 @@
+import json
+from urllib.parse import urlencode
 import pytest
-import tempfile
-import io
-import zipfile
-import toml
 
 from pathlib import Path
 
@@ -48,32 +46,69 @@ def fetch(filename: str) -> bytes | None:
         return None
 
 
-def create_zip_archive(files: dict) -> bytes:
-    with tempfile.SpooledTemporaryFile() as temp_file:
-        with zipfile.ZipFile(temp_file, "w") as archive:
-            for filename, content in files.items():
-                archive.writestr(filename, content)
-
-        temp_file.seek(0, io.SEEK_SET)
-        return temp_file.read()
+def resolve_path(path: str) -> str:
+    return __DATA_DIRECTORY__ / path
 
 
-def modify_config(root: str, key: str, value) -> bytes:
-    result = dict()
-    with open(__CONFIG_FILE_DATA__, "r") as config:
-        result = toml.load(config)
-        result[root][key] = value
+def create_args(
+    title: str, author: str, description: str, version: str, target: str
+) -> dict[str, str]:
+    args = {
+        "title": title,
+        "author": author,
+        "description": description,
+        "version": version,
+        "targets": target,
+    }
 
-    return bytes(toml.dumps(result), encoding="utf-8")
+    return {k: v for k, v in args.items() if v is not None}
 
 
-def modify_config_values(root: str, key_values: list[dict[str, any]]):
-    result = dict()
-    with open(__CONFIG_FILE_DATA__, "r") as config:
-        result = toml.load(config)
-        for data_replace in key_values:
-            for key, value in data_replace.items():
-                if key in result[root]:
-                    result[root][key] = value
+def decode_json_array(data: bytes, length: int) -> dict[str, str]:
+    json_data = json.loads(data)
+    assert len(json_data) == length
 
-    return bytes(toml.dumps(result), encoding="utf-8")
+    return json_data
+
+
+def decode_json_object(data: bytes, length: int) -> dict[str, str]:
+    json_data = json.loads(data)
+    assert len(json_data.keys()) == length
+
+    return json_data
+
+
+def assert_title(title: str, expected: str = "Untitled"):
+    message = f"Title '{expected}' expected, got '{title}'"
+
+    if expected != "Unknown":
+        message = f"Custom {message}"
+
+    assert title == expected, message
+
+
+def assert_description(description: str, expected: str = "No description"):
+    message = f"Description '{expected}' expected, got '{description}'"
+
+    if expected != "No description":
+        message = f"Custom {message}"
+
+    assert description == expected, message
+
+
+def assert_author(author: str, expected: str = "Unknown"):
+    message = f"Author '{expected}' expected, got '{author}'"
+
+    if expected != "Unknown":
+        message = f"Custom {message}"
+
+    assert author == expected, message
+
+
+def assert_version(version: str, expected: str = "0.0.0"):
+    message = f"Version '{expected}' expected, got '{version}'"
+
+    if expected != "0.0.0":
+        message = f"Custom {message}"
+
+    assert version == expected, message
