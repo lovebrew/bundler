@@ -13,7 +13,11 @@ class Media:
     TextureMimeTypes = ["image/png", "image/jpeg", "image/jpg"]
     TextureCommand = "tex3ds -f rgba8888 -z auto '{file}' -o '{out}'"
 
-    FontMimeTypes = ["application/font-sfnt", "application/vnd.ms-opentype"]
+    FontMimeTypes = [
+        "font/sfnt",
+        "application/font-sfnt",
+        "application/vnd.ms-opentype",
+    ]
     FontCommand = "mkbcfnt '{file}' -o '{out}'"
 
     def __init__(self, temp_dir: str, file_name: str, storage: FileStorage) -> None:
