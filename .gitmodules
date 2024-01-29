@@ -1,4 +1,4 @@
-[submodule "lovebrew/static"]
-	path = lovebrew/static
-	url = https://github.com/lovebrew/lovebrew-frontend
+[submodule "bundler/static"]
+	path = bundler/static
+	url = https://github.com/lovebrew/bundler-frontend
 	branch = dist

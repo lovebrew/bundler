@@ -1,10 +1,9 @@
 bin
 __pycache__
 .vscode
-ngrok.sh
 *.log
 .pytest_cache
 .vs
 build
-LOVEBrew.egg-info
+*.egg-info
 .venv
