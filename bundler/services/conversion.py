@@ -8,8 +8,6 @@ from dataclasses_json import dataclass_json
 from bundler.error import BundlerError, BundlerException
 from bundler.services.command import Command
 
-from PIL import Image
-
 
 @dataclass
 class ConversionRequest:
@@ -34,23 +32,18 @@ class ConversionRequest:
     def __is_image(self):
         return self.data.mimetype in ConversionRequest.IMAGE_TYPES
 
-    def __is_valid_image_size(self):
-        image = Image.open(self.data)
-        size = image.size
-
-        min_size = (8, 8)
-        max_size = (1024, 1024)
-
-        return min_size <= size <= max_size
-
     def __validate(self):
         if not self.__is_font() and not self.__is_image():
             raise BundlerException(BundlerError.INVALID_FILE_TYPE)
 
-        # if self.__is_image() and not self.__is_valid_image_size():
-        #     raise BundlerException(BundlerError.INVALID_IMAGE_SIZE)
+    def filename(self) -> str:
+        """
+        Get the filename of the converted file.
 
-    def filename(self) -> tuple[str]:
+        Returns:
+            str: The filename of the converted file.
+        """
+
         suffix = ".bcfnt" if self.__is_font() else ".t3x"
         return Path(self.name).with_suffix(suffix).as_posix()
 
@@ -58,7 +51,7 @@ class ConversionRequest:
         output = temp_dir / self.filename()
         return (temp_dir / self.name, output)
 
-    def convert(self, temp_dir: str) -> dict[str, str] | None:
+    def convert(self, temp_dir: str) -> dict[str, str]:
         """
         Convert the file to a different format.
 
@@ -79,13 +72,5 @@ class ConversionRequest:
         if Command.execute(command, args):
             data = Path(output).read_bytes()
             return {self.filename(): base64.b64encode(data).decode()}
-
-        return None
-
-
-@dataclass
-@dataclass_json
-class CompilationRequest:
-    name: str
-    mode: list[str]
-    icons: dict[str, str]
+        else:
+            raise BundlerException(BundlerError.CANNOT_PROCESS_FILE)

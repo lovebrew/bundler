@@ -8,11 +8,10 @@ dependencies = [
     "waitress",
     "pyopenssl",
     "requests",
-    "filetype",
     "semver",
     "hurry.filesize",
     "toml",
-    "pillow",
+    "https://github.com/scardine/image_size",
 ]
 version = "0.10.0"
 
