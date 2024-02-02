@@ -52,7 +52,7 @@ def create_app(dev: bool = False):
     @app.route("/convert", methods=["POST"])
     def convert():
         files = request.files
-        result = list()
+        result = dict()
 
         session["convert_ctx"] = str(uuid.uuid4())
 
@@ -68,7 +68,7 @@ def create_app(dev: bool = False):
                     if not data:
                         continue
 
-                    result.append(data)
+                    result.update(data)
         except BundlerException as e:
             return e.error
 

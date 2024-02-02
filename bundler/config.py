@@ -46,6 +46,7 @@ class Config(object):
                 "ROMFS": self.__validate_item(directory / "files.romfs"),
             }
 
+        # from secrets import token_hex
         assert self.SECRET_KEY_FILE.exists(), "Secret key does not exist"
 
     def __init__(self, app=None) -> None:
