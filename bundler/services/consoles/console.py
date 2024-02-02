@@ -20,7 +20,14 @@ class Console:
     def icon_size() -> tuple[int, int]:
         raise NotImplementedError
 
-    def build(self) -> str:
+    def build(self) -> bytes | None:
+        """
+        Builds the target console.
+
+        Returns:
+            bytes | None: If an error occurred, None is returned. Otherwise, the compiled data is returned.
+        """
+
         raise NotImplementedError
 
     def filepath(self) -> Path:
@@ -29,3 +36,6 @@ class Console:
     def filename(self) -> str:
         suffix = Console.EXTENSIONS[self.__class__.__name__]
         return self.filepath().with_suffix(suffix).name
+
+    def content(self) -> bytes:
+        return (self.directory / self.filename()).read_bytes()

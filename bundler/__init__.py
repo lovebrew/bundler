@@ -1,14 +1,16 @@
 from datetime import datetime, timedelta
-import io
 from tempfile import TemporaryDirectory, gettempdir
 
-from flask import Flask, request
+from flask import Flask, request, session
 
 from bundler.config import Environment
-from bundler.error import BundlerError, BundlerException
+from bundler.error import BundlerError, BundlerException, status
+from bundler.logger import WRITE, ERROR, INFO, get_logs
 
 from bundler.services.compile import CompilationRequest, Console
 from bundler.services.conversion import ConversionRequest
+
+import uuid
 
 
 def create_app(dev: bool = False):
@@ -52,6 +54,8 @@ def create_app(dev: bool = False):
         files = request.files
         result = list()
 
+        session["convert_ctx"] = str(uuid.uuid4())
+
         try:
             if len(files) == 0:
                 raise BundlerException(BundlerError.NO_FILES_PROVIDED)
@@ -77,6 +81,8 @@ def create_app(dev: bool = False):
 
         result = dict()
 
+        session["compile_ctx"] = str(uuid.uuid4())
+
         try:
             metadata = {key: value for key, value in args.items() if key != "targets"}
 
@@ -84,21 +90,36 @@ def create_app(dev: bool = False):
             _targets = list(set(args.get("targets").split(",")))
 
             for target in _targets:
-                if not target.title() in Console:
-                    raise BundlerException(BundlerError.INVALID_TARGET_NAME, target)
+                if not target.upper() in Console.__dict__:
+                    ERROR(session["compile_ctx"], f"Invalid target: {target}")
+                    continue
+
+                INFO(session["compile_ctx"], f"Compiling for {target}")
 
                 icon_name = f"icon-{target}"
                 icon_data = files.get(icon_name, DEFAULT_DATA[target]["ICON"])
 
+                if icon_data == DEFAULT_DATA[target]["ICON"]:
+                    INFO(session["compile_ctx"], f"Using default icon for {target}")
+                else:
+                    INFO(session["compile_ctx"], f"Using custom icon for {target}")
+
                 _data = _request.compile(target, icon_data, DEFAULT_DATA[target])
+                WRITE(session["compile_ctx"], "--- [END] ---")
 
                 if not _data:
                     continue
 
                 result.update(_data)
+
+            result.update({"log": get_logs(session["compile_ctx"])})
         except BundlerException as e:
             return e.error
 
-        return result
+        bundler_status = BundlerError.SUCCESS
+        if "ERROR" in get_logs(session["compile_ctx"]):
+            bundler_status = BundlerError.PARTIAL_SUCCESS
+
+        return status(bundler_status, result)
 
     return app

@@ -4,8 +4,8 @@ import base64
 from dataclasses import dataclass
 from pathlib import Path
 
-from dataclasses_json import dataclass_json
 from bundler.error import BundlerError, BundlerException
+from bundler.logger import ERROR, INFO
 from bundler.services.command import Command
 
 
@@ -68,9 +68,12 @@ class ConversionRequest:
         self.data.save(input)
 
         args = {"file": input, "out": output}
+        data = Path(output).read_bytes()
 
         if Command.execute(command, args):
-            data = Path(output).read_bytes()
+            INFO(f"Converted {self.name} to {output}")
             return {self.filename(): base64.b64encode(data).decode()}
         else:
-            raise BundlerException(BundlerError.CANNOT_PROCESS_FILE)
+            ERROR(f"Failed to convert {self.name}")
+
+        raise BundlerException(BundlerError.CANNOT_PROCESS_FILE)

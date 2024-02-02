@@ -1,12 +1,16 @@
+from flask import session
+
 from bundler.services.consoles.console import Console
 from bundler.services.command import Command
+
+from bundler.logger import ERROR, INFO
 
 
 class Ctr(Console):
     SmdhTool = 'smdhtool --create "{name}" "{desc}" "{author}" "{icon}" "{out}.smdh"'
     BinTool = '3dsxtool "{elf}" "{output}.3dsx" --smdh="{smdh}.smdh" --romfs="{romfs}"'
 
-    def build(self) -> str:
+    def build(self) -> bytes | None:
         args = {
             "name": self.title,
             "desc": self.description,
@@ -15,8 +19,11 @@ class Ctr(Console):
             "out": self.filepath(),
         }
 
-        if (_ := Command.execute(Ctr.SmdhTool, args)) is False:
-            return "Failed to create SMDH"
+        if not Command.execute(Ctr.SmdhTool, args):
+            ERROR(session["compile_ctx"], "Failed to create SMDH")
+            return
+
+        INFO(session["compile_ctx"], "SMDH created successfully")
 
         args = {
             "elf": self.binary,
@@ -25,10 +32,13 @@ class Ctr(Console):
             "romfs": self.romfs,
         }
 
-        if (_ := Command.execute(Ctr.BinTool, args)) is False:
-            return "Failed to create 3DSX"
+        if not Command.execute(Ctr.BinTool, args):
+            ERROR(session["compile_ctx"], "Failed to create binary")
+            return
 
-        return self.filepath().with_suffix(".3dsx").read_bytes()
+        INFO(session["compile_ctx"], "Binary created successfully")
+
+        return self.content()
 
     @staticmethod
     def icon_size() -> tuple[int, int]:

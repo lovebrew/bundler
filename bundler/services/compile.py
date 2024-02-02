@@ -6,15 +6,21 @@ from enum import Enum
 from tempfile import TemporaryDirectory, gettempdir
 from pathlib import Path
 
-from bundler.error import BundlerError, BundlerException
-
+from bundler.services.consoles.cafe import Cafe
 from bundler.services.consoles.ctr import Ctr
+from bundler.services.consoles.hac import Hac
+
+from bundler.logger import ERROR
 
 from get_image_size import get_image_size_from_bytesio
+
+from flask import session
 
 
 class Console(Enum):
     CTR = Ctr
+    HAC = Hac
+    CAFE = Cafe
 
 
 @dataclass
@@ -36,9 +42,11 @@ class CompilationRequest:
         with open(f"{directory}/icon.bin", "wb") as file:
             file.write(icon.read())
 
+        icon.seek(0)
+
         return Path(f"{directory}/icon.bin")
 
-    def __validate_icon(self, size: tuple[int, int], icon: io.BytesIO) -> None:
+    def __validate_icon(self, size: tuple[int, int], icon: io.BytesIO) -> bool:
         """
         Validates the icon size.
 
@@ -49,12 +57,13 @@ class CompilationRequest:
 
         icon_byte_len = icon.getbuffer().nbytes
         icon_size = get_image_size_from_bytesio(icon, icon_byte_len)
+        icon.seek(0)
 
         if size != icon_size:
-            raise BundlerException(BundlerError.INVALID_ICON_SIZE)
+            ERROR(session["compile_ctx"], f"Invalid icon size: {icon_size} != {size}")
+            return False
 
-        # Reset the icon buffer to the start because it was read.
-        icon.seek(0, io.SEEK_SET)
+        return True
 
     def compile(
         self, target: str, icon: io.BytesIO, data: dict[str, io.BytesIO]
@@ -72,7 +81,9 @@ class CompilationRequest:
         """
 
         console_class = Console[target.upper()].value
-        self.__validate_icon(console_class.icon_size(), icon)
+
+        if not self.__validate_icon(console_class.icon_size(), icon):
+            return None
 
         with TemporaryDirectory(dir=gettempdir()) as directory:
             icon_path = self.__save_icon(icon, directory)
@@ -84,4 +95,9 @@ class CompilationRequest:
                 **self.__dict__,
             )
 
-            return {console.filename(): base64.b64encode(console.build()).decode()}
+            _build_data = console.build()
+
+            if not _build_data:
+                return None
+
+            return {console.filename(): base64.b64encode(_build_data).decode()}

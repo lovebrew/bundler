@@ -12,8 +12,8 @@ Web-based service for building games with LÖVE Potion
 
 ## Running
 
-- **Production mode:** `waitress-serve --call "bundler:create_app(dev=True)"`
-- **Development mode:** `flask --app "bundler:create_app()" run`
+- **Production mode:** `waitress-serve --call "bundler:create_app()"`
+- **Development mode:** `flask --app "bundler:create_app(dev=True)" run --debug`
 
 The webserver does have a few dependencies outside of python: tex3ds, mkbcfnt, and several other homebrew tools provided by [devitPro's package manager]([https://github.com/devkitpro/devkitpro-pacman](https://devkitpro.org/wiki/devkitPro_pacman)). Once installed, simply run `pacman -S tex3ds 3ds-tools switch-tools wiiu-tools`.
 
