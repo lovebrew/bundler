@@ -69,6 +69,8 @@ def create_app(dev: bool = False):
                         continue
 
                     result.update(data)
+
+            result.update({"log": get_logs(session["convert_ctx"])})
         except BundlerException as e:
             return e.error
 

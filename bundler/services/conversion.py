@@ -4,6 +4,8 @@ import base64
 from dataclasses import dataclass
 from pathlib import Path
 
+from flask import session
+
 from bundler.error import BundlerError, BundlerException
 from bundler.logger import ERROR, INFO
 from bundler.services.command import Command
@@ -48,8 +50,24 @@ class ConversionRequest:
         return Path(self.name).with_suffix(suffix).as_posix()
 
     def __get_files(self, temp_dir: Path) -> tuple[str]:
+        """
+        Get the input and output files for the conversion.
+        The input is relative to the game directory, no leading slash.
+        Example: "graphics/texture.png"
+
+        Args:
+            temp_dir (Path): The temporary directory to use
+
+        Returns:
+            tuple[str]: The input and output filepaths for the conversion.
+        """
+
+        input = temp_dir / self.name
+        input.parent.mkdir(parents=True, exist_ok=True)
+
         output = temp_dir / self.filename()
-        return (temp_dir / self.name, output)
+
+        return (input, output)
 
     def convert(self, temp_dir: str) -> dict[str, str]:
         """
@@ -68,12 +86,13 @@ class ConversionRequest:
         self.data.save(input)
 
         args = {"file": input, "out": output}
-        data = Path(output).read_bytes()
 
         if Command.execute(command, args):
-            INFO(f"Converted {self.name} to {output}")
+            INFO(session["convert_ctx"], f"Converted {self.name} to {self.filename()}")
+
+            data = Path(output).read_bytes()
             return {self.filename(): base64.b64encode(data).decode()}
         else:
-            ERROR(f"Failed to convert {self.name}")
+            ERROR(session["convert_ctx"], f"Failed to convert {self.name}")
 
         raise BundlerException(BundlerError.CANNOT_PROCESS_FILE)
