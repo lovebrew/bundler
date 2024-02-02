@@ -62,6 +62,10 @@ class ConversionRequest:
             tuple[str]: The input and output filepaths for the conversion.
         """
 
+        # prevent leading slashes
+        if self.name.startswith("/"):
+            self.name = self.name[1:]
+
         input = temp_dir / self.name
         input.parent.mkdir(parents=True, exist_ok=True)
 
