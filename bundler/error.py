@@ -1,5 +1,4 @@
 from http import HTTPStatus
-from sre_constants import SUCCESS
 
 from aenum import Enum, NoAlias
 

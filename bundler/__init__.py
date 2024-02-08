@@ -12,9 +12,11 @@ from bundler.services.conversion import ConversionRequest
 
 import uuid
 
+INDEX_PAGE = None
+
 
 def create_app(dev: bool = False):
-    app = Flask(__name__)
+    app = Flask(__name__, static_url_path="")
 
     config_type = "DEVELOPMENT" if dev else "PRODUCTION"
     __config__ = Environment[config_type].value(app)
@@ -22,13 +24,16 @@ def create_app(dev: bool = False):
 
     DEFAULT_DATA = app.config["DEFAULT_DATA"]
 
+    with open(f"{app.static_folder}/index.html", encoding="utf-8") as file:
+        INDEX_PAGE = file.read()
+
     @app.errorhandler(500)
     def internal_server_error(e):
         return "Internal Server Error", 500
 
     @app.route("/", methods=["GET"])
     def index():
-        return "Hello World"
+        return INDEX_PAGE
 
     @app.route("/info", methods=["GET"])
     def info():

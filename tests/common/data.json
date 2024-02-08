@@ -1,0 +1,33 @@
+{
+  "largeTextureBoth": [
+    "cat_big_both.jpg",
+    "cat_big_both.png"
+  ],
+  "largeTextureWidth": [
+    "cat_big_width.jpg",
+    "cat_big_width.png"
+  ],
+  "largeTextureHeight": [
+    "cat_big_height.jpg",
+    "cat_big_height.png"
+  ],
+  "invalidTextures": [
+    "arial.fnt",
+    "chika.gif",
+    "rectangle.bmp",
+    "rectangle.tga"
+  ],
+  "validTextures": [
+    "dio.jpg",
+    "lenny.png"
+  ],
+  "invalidFonts": [
+    "arial.fnt"
+  ],
+  "validFonts": [
+    "Oneday.otf",
+    "Perfect DOS VGA 437.ttf"
+  ],
+  "config": "lovebrew.toml",
+  "main": "main.lua"
+}

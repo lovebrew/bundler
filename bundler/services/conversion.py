@@ -53,7 +53,17 @@ class ConversionRequest:
         """
         Get the input and output files for the conversion.
         The input is relative to the game directory, no leading slash.
+
         Example: "graphics/texture.png"
+
+        If the filename has a leading or trailing slash, it will be removed.
+
+        Examples:
+            "/graphics/texture.png"  -> "graphics/texture.png"
+            "graphics/texture.png/"  -> "graphics/texture.png"
+            "/graphics/texture.png/" -> "graphics/texture.png"
+
+        If the filename has parent folders, they will be created in the temporary directory.
 
         Args:
             temp_dir (Path): The temporary directory to use
@@ -62,9 +72,7 @@ class ConversionRequest:
             tuple[str]: The input and output filepaths for the conversion.
         """
 
-        # prevent leading slashes
-        if self.name.startswith("/"):
-            self.name = self.name[1:]
+        self.name = self.name.strip("/")
 
         input = temp_dir / self.name
         input.parent.mkdir(parents=True, exist_ok=True)
@@ -96,7 +104,6 @@ class ConversionRequest:
 
             data = Path(output).read_bytes()
             return {self.filename(): base64.b64encode(data).decode()}
-        else:
-            ERROR(session["convert_ctx"], f"Failed to convert {self.name}")
 
+        ERROR(session["convert_ctx"], f"Failed to convert {self.name}")
         raise BundlerException(BundlerError.CANNOT_PROCESS_FILE)

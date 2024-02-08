@@ -11,9 +11,13 @@ dependencies = [
     "semver",
     "hurry.filesize",
     "toml",
-    "https://github.com/scardine/image_size",
+    "get-image-size@git+https://github.com/scardine/image_size",
+    "aenum",
 ]
 version = "0.10.0"
+
+[project.optional-dependencies]
+dev = ["pytest", "selenium"]
 
 [tool.setuptools]
 include-package-data = true
