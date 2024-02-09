@@ -28,6 +28,9 @@
     "Oneday.otf",
     "Perfect DOS VGA 437.ttf"
   ],
+  "validSounds": [
+    "game.ogg"
+  ],
   "config": "lovebrew.toml",
   "main": "main.lua"
 }

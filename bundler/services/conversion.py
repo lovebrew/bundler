@@ -2,6 +2,7 @@ import io
 import base64
 
 from dataclasses import dataclass
+from operator import is_
 from pathlib import Path
 
 from flask import session
@@ -10,13 +11,13 @@ from bundler.error import BundlerError, BundlerException
 from bundler.logger import ERROR, INFO
 from bundler.services.command import Command
 
+import magic
+
 
 @dataclass
 class ConversionRequest:
     FONT_TYPES = [
         "font/sfnt",
-        "font/otf",
-        "font/ttf",
         "application/font-sfnt",
         "application/vnd.ms-opentype",
     ]
@@ -28,17 +29,7 @@ class ConversionRequest:
     name: str
     data: io.BytesIO
 
-    def __is_font(self):
-        return self.data.mimetype in ConversionRequest.FONT_TYPES
-
-    def __is_image(self):
-        return self.data.mimetype in ConversionRequest.IMAGE_TYPES
-
-    def __validate(self):
-        if not self.__is_font() and not self.__is_image():
-            raise BundlerException(BundlerError.INVALID_FILE_TYPE)
-
-    def filename(self) -> str:
+    def output(self) -> str:
         """
         Get the filename of the converted file.
 
@@ -46,7 +37,7 @@ class ConversionRequest:
             str: The filename of the converted file.
         """
 
-        suffix = ".bcfnt" if self.__is_font() else ".t3x"
+        suffix = ".bcfnt" if self.is_font else ".t3x"
         return Path(self.name).with_suffix(suffix).as_posix()
 
     def __get_files(self, temp_dir: Path) -> tuple[str]:
@@ -74,12 +65,17 @@ class ConversionRequest:
 
         self.name = self.name.strip("/")
 
-        input = temp_dir / self.name
-        input.parent.mkdir(parents=True, exist_ok=True)
+        input_path = temp_dir / self.name
+        input_path.parent.mkdir(parents=True, exist_ok=True)
 
-        output = temp_dir / self.filename()
+        self.data.save(input_path)
 
-        return (input, output)
+        self.mime_type = magic.from_file(input_path.as_posix(), mime=True)
+        self.is_font = self.mime_type in self.FONT_TYPES
+        print(self.name, self.mime_type)
+        output = temp_dir / self.output()
+
+        return (input_path, output)
 
     def convert(self, temp_dir: str) -> dict[str, str]:
         """
@@ -89,21 +85,27 @@ class ConversionRequest:
             dict: {filename: base64 encoded data}
         """
 
-        self.__validate()
-
         temp_dir = Path(temp_dir)
-        command = self.FontCommand if self.__is_font() else self.TextureCommand
-
         input, output = self.__get_files(temp_dir)
-        self.data.save(input)
+
+        if not self.mime_type in self.FONT_TYPES + self.IMAGE_TYPES:
+            ERROR(session["convert_ctx"], f"Invalid file type: {self.mime_type}")
+            raise BundlerException(BundlerError.INVALID_FILE_TYPE)
+
+        command = (
+            self.TextureCommand
+            if self.mime_type in self.IMAGE_TYPES
+            else self.FontCommand
+        )
 
         args = {"file": input, "out": output}
 
         if Command.execute(command, args):
-            INFO(session["convert_ctx"], f"Converted {self.name} to {self.filename()}")
+            file_name = self.output()
+            INFO(session["convert_ctx"], f"Converted {self.name} to {file_name}")
 
             data = Path(output).read_bytes()
-            return {self.filename(): base64.b64encode(data).decode()}
+            return {self.output(): base64.b64encode(data).decode()}
 
         ERROR(session["convert_ctx"], f"Failed to convert {self.name}")
         raise BundlerException(BundlerError.CANNOT_PROCESS_FILE)

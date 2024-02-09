@@ -13,6 +13,8 @@ dependencies = [
     "toml",
     "get-image-size@git+https://github.com/scardine/image_size",
     "aenum",
+    "python-magic-bin; platform_system=='Windows'",
+    "python-magic; platform_system!='Windows'",
 ]
 version = "0.10.0"
 

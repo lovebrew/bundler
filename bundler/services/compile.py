@@ -100,4 +100,5 @@ class CompilationRequest:
             if not _build_data:
                 return None
 
-            return {console.filename(): base64.b64encode(_build_data).decode()}
+            key_name = console_class.__name__.lower()
+            return {key_name: base64.b64encode(_build_data).decode()}
