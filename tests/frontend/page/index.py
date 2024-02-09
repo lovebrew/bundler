@@ -1,10 +1,10 @@
-from tests.conftest import get_resource
-from tests.frontend.page.base import AbstractBasePage
-from tests.frontend.driver import Driver
+from conftest import get_resource
+from frontend.page.base import AbstractBasePage
+from frontend.driver import Driver
 
-from tests.frontend.locators.index import IndexPageLocators
+from frontend.locators.index import IndexPageLocators
 
-from tests.conftest import logger
+from conftest import logger
 
 
 class IndexPage(AbstractBasePage):

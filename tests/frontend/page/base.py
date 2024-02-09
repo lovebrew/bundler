@@ -1,6 +1,6 @@
 import re
 
-from tests.frontend.driver import Driver
+from frontend.driver import Driver
 
 
 class AbstractBasePage:

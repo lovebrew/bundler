@@ -1,15 +1,13 @@
-from functools import wraps
 import io
 import json
 import logging
 
 from pathlib import Path
 from datetime import datetime
-from typing import Callable
 
 from bundler import create_app
 
-from tests.resource import Resource
+from resource import Resource
 
 import pytest
 

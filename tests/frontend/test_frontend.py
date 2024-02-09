@@ -2,16 +2,14 @@ from tempfile import TemporaryDirectory, gettempdir
 
 from threading import Thread
 
-from trio import Path
-
 from bundler import create_app
 
-from tests.common.classes.bundle import Bundle
-from tests.common.classes.config import Config
-from tests.conftest import logger
+from common.classes.bundle import Bundle
+from common.classes.config import Config
+from conftest import logger
 
-from tests.frontend.driver import Driver
-from tests.frontend.page.index import IndexPage
+from frontend.driver import Driver
+from frontend.page.index import IndexPage
 
 import pytest
 

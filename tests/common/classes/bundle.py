@@ -2,7 +2,7 @@ from typing import Self
 from zipfile import ZipFile
 from pathlib import Path
 
-from tests.conftest import get_resource, logger
+from conftest import get_resource, logger
 
 
 class Bundle(ZipFile):

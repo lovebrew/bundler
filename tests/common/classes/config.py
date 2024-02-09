@@ -1,6 +1,6 @@
 import toml
 
-from tests.conftest import get_resource
+from conftest import get_resource
 
 
 class Config:

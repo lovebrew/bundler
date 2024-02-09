@@ -12,7 +12,7 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from tests.conftest import logger
+from conftest import logger
 
 FILE_PATH = Path(__file__).parent
 
