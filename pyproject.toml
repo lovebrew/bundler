@@ -12,8 +12,8 @@ dependencies = [
     "semver",
     "hurry.filesize",
     "toml",
-    "python-magic",
-    "python-magic-bin",
+    "python-magic-bin; platform_system=='Windows'",
+    "python-magic; platform_system!='Windows'",
     "pillow",
 ]
 version = "0.9.0"
