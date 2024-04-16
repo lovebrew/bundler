@@ -1,6 +1,6 @@
 import toml
 
-from conftest import get_resource
+from data import get_resource
 
 
 class Config:
@@ -12,11 +12,12 @@ class Config:
         for section, attributes in self._data.items():
             for attribute in attributes:
                 setattr(self, attribute, self._make_setter(section, attribute))
-                setattr(self, attribute, self._make_getter(section, attribute))
+                # setattr(self, attribute, self._make_getter(section, attribute))
 
     def _make_setter(self, section: str, attribute: str):
         def setter(value: str) -> None:
             self._data[section][attribute] = value
+            return self
 
         return setter
 

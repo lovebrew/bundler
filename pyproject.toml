@@ -19,7 +19,7 @@ dependencies = [
 version = "0.10.0"
 
 [project.optional-dependencies]
-dev = ["pytest", "selenium"]
+test = ["pytest", "selenium"]
 
 [tool.setuptools]
 include-package-data = true
@@ -27,6 +27,7 @@ include-package-data = true
 [tool.setuptools.package-data]
 "bundler.static" = ["**"]
 "bundler.bin" = ["*.elf", "*.jpg", "*.png", "*.romfs", "*.gsh"]
+"bundler" = ["secret.key"]
 
 [project.urls]
 Donate = "https://paypal.me/TurtleP"

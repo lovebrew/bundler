@@ -1,6 +1,10 @@
+import logging
+
+from datetime import datetime
 from pathlib import Path
 
 import toml
+import time
 
 from selenium.common.exceptions import NoSuchElementException
 
@@ -12,15 +16,14 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from conftest import logger
 
 FILE_PATH = Path(__file__).parent
 
 
 class Driver:
     CONFIG_PATH = FILE_PATH / "config.toml"
+    DOWNLOADS_DIR = None
 
-    DOWNLOADS_DIR = FILE_PATH / "downloads"
     SCREENSHOTS_DIR = FILE_PATH / "screenshots"
 
     def __init__(self):
@@ -31,24 +34,24 @@ class Driver:
         driver = None
         driver_type = config["driver"]["browser"]
 
+        logging.info(f"Downloads Directory: {Driver.DOWNLOADS_DIR}")
+
         match driver_type:
             case "chrome":
                 driver = self.__init_chromedriver__()
             case "firefox":
                 driver = self.__init__geckodriver__()
+            case "edge":
+                driver = self.__init_edgedriver__()
             case _:
                 raise Exception("Invalid driver type")
 
-        logger().info(f"Driver: {driver_type}")
+        logging.info(f"Driver: {driver_type}")
 
         self.driver = driver
-        self.driver.implicitly_wait(10)
-
         self.base_url = config["driver"]["base_url"]
 
-    def __init_chromedriver__(self):
-        options = ChromeOptions()
-
+    def get_chromium_options(self, options):
         options.add_experimental_option(
             "prefs",
             {
@@ -59,6 +62,10 @@ class Driver:
         )
 
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
+
+    def __init_chromedriver__(self):
+        options = ChromeOptions()
+        self.get_chromium_options(options)
 
         return webdriver.Chrome(options)
 
@@ -71,17 +78,54 @@ class Driver:
 
         return webdriver.Firefox(options=options)
 
+    def __init_edgedriver__(self):
+        options = webdriver.EdgeOptions()
+        self.get_chromium_options(options)
+
+        return webdriver.Edge(options=options)
+
+    @staticmethod
+    def set_download_directory(directory: str):
+        Driver.DOWNLOADS_BASE_DIR = Path(directory).resolve()
+
+    def get_latest_download(self):
+        # Wait for the download to complete based on the file size
+        filename = Driver.DOWNLOADS_DIR / "bundle.zip"
+
+        while True:
+            current_size = filename.stat().st_size
+            if not filename.exists() or current_size != filename.stat().st_size:
+                time.sleep(1)
+                continue
+
+            if current_size == filename.stat().st_size:
+                break
+
+        result = sorted(
+            Driver.DOWNLOADS_DIR.glob("*"),
+            key=lambda x: x.stat().st_ctime,
+            reverse=True,
+        )[0]
+
+        logging.info(f"Latest Download: {result}")
+        return result
+
     def save_screenshot(self, filename: str):
         Driver.SCREENSHOTS_DIR.mkdir(exist_ok=True)
-        self.driver.save_screenshot(f"{Driver.SCREENSHOTS_DIR}/{filename}")
+
+        time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.driver.save_screenshot(f"{Driver.SCREENSHOTS_DIR}/{filename}_{time}.png")
 
         return f"{Driver.SCREENSHOTS_DIR}/{filename}"
+
+    def get_screenshot_as_png(self) -> bytes:
+        return self.driver.get_screenshot_as_png()
 
     def get_screenshot_as_base64(self) -> str:
         return self.driver.get_screenshot_as_base64()
 
     def get(self, url: str):
-        logger().info(f"GET: {url}")
+        logging.info(f"GET: {url}")
         self.driver.get(url)
 
     def title(self) -> str:
@@ -98,7 +142,7 @@ class Driver:
             return WebDriverWait(self.driver, timeout).until(
                 EC.visibility_of_element_located(by)
             )
-        except Exception as e:
+        except Exception:
             raise
 
     def quit(self):

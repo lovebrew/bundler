@@ -1,10 +1,12 @@
 bin
 __pycache__
 .vscode
-*.log
 .pytest_cache
 .vs
 build
 *.egg-info
 .venv
 secret.key
+reports/
+downloads/
+logs/

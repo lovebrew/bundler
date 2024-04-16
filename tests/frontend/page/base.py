@@ -1,3 +1,4 @@
+import logging
 import re
 
 from frontend.driver import Driver
@@ -27,8 +28,9 @@ class AbstractBasePage:
 
     def assert_text_contains(self, value: str, expected: str, is_regex=False):
         if is_regex:
-            assert re.search(
-                value, expected
-            ), f"Expected '{value}' to be found in '{expected}'"
+            match_item = re.search(value, expected)
+            assert match_item, f"Expected '{value}' to be found in '{expected}'"
+            logging.info(f"Matched: {match_item.group()}")
         else:
             assert value in expected, f"Expected '{value}' to be in '{expected}'"
+            logging.info(f"Matched: {value}")
