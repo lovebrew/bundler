@@ -33,17 +33,19 @@ class Config(object):
         files_directory = Path(__file__).parent / "bin"
         for console in files_directory.glob("*"):
             self.DEFAULT_DATA[console.name] = dict()
-
+        print("config", self.DEFAULT_DATA)
         for console in self.DEFAULT_DATA:
             directory = files_directory / console
+
             ext = "jpg" if console == "hac" else "png"
+            romfs = "content" if console == "cafe" else "files.romfs"
 
             self.DEFAULT_DATA[console] = {
                 "BINARY": self.__validate_item(directory / "lovepotion.elf"),
                 "ICON": io.BytesIO(
                     self.__validate_item(directory / f"icon.{ext}").read_bytes()
                 ),
-                "ROMFS": self.__validate_item(directory / "files.romfs"),
+                "ROMFS": self.__validate_item(directory / romfs),
             }
 
         # from secrets import token_hex

@@ -2,7 +2,6 @@ import io
 import base64
 
 from dataclasses import dataclass
-from operator import is_
 from pathlib import Path
 
 from flask import session
