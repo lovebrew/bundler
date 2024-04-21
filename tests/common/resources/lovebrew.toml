@@ -1,0 +1,14 @@
+[metadata]
+title = "SuperGame"
+author = "SuperAuthor"
+description = "SuperDescription"
+version = "0.1.0"
+icons = { ctr = "", hac = "", cafe = "" }
+
+[build]
+targets = ["ctr", "hac", "cafe"]
+source = "game"
+packaged = false
+
+[debug]
+version = "0.10.0"
