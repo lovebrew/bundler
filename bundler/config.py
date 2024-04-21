@@ -33,7 +33,7 @@ class Config(object):
         files_directory = Path(__file__).parent / "bin"
         for console in files_directory.glob("*"):
             self.DEFAULT_DATA[console.name] = dict()
-        print("config", self.DEFAULT_DATA)
+
         for console in self.DEFAULT_DATA:
             directory = files_directory / console
 
