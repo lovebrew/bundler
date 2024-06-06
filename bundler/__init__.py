@@ -47,11 +47,18 @@ def create_app(dev: bool = False):
         time_delta = (datetime.now() - app.config["INIT_TIME"]).total_seconds()
         time_delta = str(timedelta(seconds=time_delta))
 
+        last_modified = dict()
+        for console in DEFAULT_DATA:
+            last_modified[console] = datetime.fromtimestamp(
+                DEFAULT_DATA[console]["LAST_MODIFIED"]
+            )
+
         return {
             "Server Time": datetime.now(),
             "Deployed": app.config["INIT_TIME"],
             "Uptime": time_delta,
             "Version": app.config["VERSION"],
+            "Last Modified": last_modified,
         }
 
     @app.route("/convert", methods=["POST"])

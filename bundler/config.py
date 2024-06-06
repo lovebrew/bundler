@@ -46,6 +46,7 @@ class Config(object):
                     self.__validate_item(directory / f"icon.{ext}").read_bytes()
                 ),
                 "ROMFS": self.__validate_item(directory / romfs),
+                "LAST_MODIFIED": (directory / "lovepotion.elf").stat().st_mtime,
             }
 
         # from secrets import token_hex
