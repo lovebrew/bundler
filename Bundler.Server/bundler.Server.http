@@ -1,0 +1,12 @@
+@Bundler.Server_HostAddress = http://localhost:5001
+
+GET {{bundler.Server_HostAddress}}/info
+Accept: application/json
+
+POST {{bundler.Server_HostAddress}}/compile
+Accept: application/json
+
+POST {{bundler.Server_HostAddress}}/convert
+Accept: application/json
+
+###

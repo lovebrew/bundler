@@ -1,3 +1,0 @@
-[driver]
-base_url = "http://localhost:5000"
-browser = "firefox"
