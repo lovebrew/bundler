@@ -57,7 +57,7 @@ function App() {
   const handleZipUpload = async (archive: File) => {
     const bundler = new Bundler(archive);
 
-    toast.promise(bundler.prepareContent(), {
+    toast.promise(bundler.bundleContent(), {
       loading: "Uploading..",
       success: handleUploadSuccess,
       error: handleUploadError,
@@ -94,7 +94,7 @@ function App() {
         if (isZipFile(file)) handleZipUpload(file);
       }
 
-      if (files.length > 0 && files.every((file) => isFontFile(file) ||isImageFile(file))) {
+      if (files.length > 0 && files.every((file) => isFontFile(file) || isImageFile(file))) {
         handleConversions(files);
       }
 

@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "debug": "^4.3.5",
+    "imurmurhash": "^0.1.4",
     "jszip": "^3.10.1",
+    "localforage": "^1.10.0",
     "mime": "^3.0.0",
     "mime-types": "^2.1.35",
     "react": "^18.2.0",
@@ -22,6 +24,7 @@
     "use-sound": "^4.0.1"
   },
   "devDependencies": {
+    "@types/imurmurhash": "^0.1.4",
     "@types/mime": "^3.0.3",
     "@types/node": "^20.8.9",
     "@types/react": "^18.2.15",

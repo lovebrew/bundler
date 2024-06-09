@@ -1,18 +1,17 @@
-import Bundle, { BundleIcons } from "./Bundle";
+import Bundle from "./Bundle";
 import { ConfigMetadata } from "./Config";
+import { BundleIcons, BundleCache, BundleType, BundleAssets, getExtension } from "./types";
 
 import { convertFiles, isMediaFile, getConversionLog } from "./utilities";
 
+import localforage from "localforage";
+
 import JSZip from "jszip";
+import MurmurHash3 from "imurmurhash";
 
 export type BundlerResponse = {
   message: string;
   file?: Promise<Blob>;
-};
-
-type GameData = {
-  binary: Blob;
-  assets: Blob;
 };
 
 export default class Bundler {
@@ -73,10 +72,13 @@ export default class Bundler {
    * 2. Finding all defined icons.
    * 3. Fetching the game content for each target.
    *   • This includes converting the content for the CTR target.
-   * 4. Sending the content to the server.
+   * 4. Check if the cache exists for the target ELF binary.
+   *  • If it does, use the cached binary.
+   *  • If it doesn't, send the metadata to the server for compilation and cache it.
+   * 5. Fuse the game content into a single file.
    * @returns {Promise<BundlerResponse>} - The response from the server.
    */
-  public async prepareContent(): Promise<BundlerResponse> {
+  public async bundleContent(): Promise<BundlerResponse> {
     const bundle = new Bundle(this.file);
     await bundle.validate();
 
@@ -86,24 +88,47 @@ export default class Bundler {
     const files = await bundle.getSourceFiles();
     const packaged = bundle.isPackaged();
 
-    const data: Map<string, GameData> = new Map();
-
+    let assets: BundleAssets = {};
     for (const target of targets) {
-      const assets = await this.getGameAssets(target, files);
-      data.set(target, { binary: new Blob(), assets });
+      assets[target] = await this.getGameAssets(target, files);
     }
 
-    if (!packaged) return this.bundleContentLoose(data);
+    if (!packaged) return this.bundleContentLoose(assets);
 
     const metadata = bundle.getMetadata();
-    const binaries = await this.sendCompile(targets, icons, metadata);
+    const name = bundle.getMetadata().title;
 
-    for (const target of targets) {
-      data.get(target)!.binary = binaries.get(target)!;
+    const hashData = await bundle.getHashData();
+    const cache = await this.getCachedBundles(hashData);
+
+    if (cache !== null) {
+      return this.fuseBundleContent(metadata.title, cache, assets);
     }
 
-    const name = bundle.getMetadata().title;
-    return this.bundleContent(name, data);
+    const binaries = await this.sendCompile(targets, icons, metadata);
+    this.setCachedBundle(hashData, binaries);
+
+    return this.fuseBundleContent(name, binaries, assets);
+  }
+
+  /*
+   * Caches a bundle into localstorage
+   * @param {string} content - The content string from the toml and icons.
+   */
+  public async getCachedBundles(
+    content: string,
+  ): Promise<BundleCache | null> {
+    const hash = MurmurHash3(content).result().toString();
+
+    return await localforage.getItem(hash);
+  }
+
+  public async setCachedBundle(
+    content: string,
+    cache: BundleCache): Promise<void> {
+    const hash = MurmurHash3(content).result().toString();
+
+    await localforage.setItem(hash, cache);
   }
 
   /**
@@ -113,12 +138,14 @@ export default class Bundler {
    * @returns {Promise<BundlerResponse>} - The response from the server.
    */
   private async bundleContentLoose(
-    data: Map<string, GameData>
+    data: BundleAssets
   ): Promise<BundlerResponse> {
     const bundle = new JSZip();
 
-    for (const [key, value] of data) {
-      bundle.file(`${key}-assets.zip`, value.assets);
+    let target: BundleType;
+    for (target in data) {
+      if (data[target] === undefined || data[target] === null) continue;
+      bundle.file(`${target}-assets.zip`, data[target] as Blob);
     }
 
     const files = bundle.generateAsync({ type: "blob" });
@@ -131,23 +158,27 @@ export default class Bundler {
    * @param content The game content to bundle.
    * @returns {Promise<BundlerResponse>} - The response from the server.
    */
-  private async bundleContent(
+  private async fuseBundleContent(
     name: string,
-    content: Map<string, GameData>
+    binaries: BundleCache,
+    assets: BundleAssets
   ): Promise<BundlerResponse> {
     const bundle: JSZip = new JSZip();
 
-    for (const [key, value] of content) {
-      const binary = value.binary;
-      const assets = value.assets;
+    let target: BundleType;
+    for (target in binaries) {
+      if (assets[target] === undefined) continue;
 
-      const combined = await Promise.all(
-        [binary, assets].map(async (blob) => blob.arrayBuffer())
+      const binary = binaries[target] as Blob;
+      const game = assets[target] as Blob;
+
+      const fused = await Promise.all(
+        [binary, game].map(async (blob) => blob.arrayBuffer())
       );
 
       const file = new File(
-        combined,
-        `${name}.${this.extensions[key as keyof typeof this.extensions]}`
+        fused,
+        `${name}.${getExtension(target)}`
       );
 
       bundle.file(file.name, file);
@@ -172,16 +203,15 @@ export default class Bundler {
    * @param metadata The metadata to use.
    */
   private async sendCompile(
-    targets: Array<string>,
+    targets: Array<BundleType>,
     icons: BundleIcons,
     metadata: ConfigMetadata
-  ): Promise<Map<string, Blob>> {
-    const content = new Map<string, Blob>();
-
+  ): Promise<BundleCache> {
     // append the icons as FormData
     const body = new FormData();
     for (const [target, blob] of Object.entries(icons)) {
-      body.append(`icon-${target}`, blob);
+      if (blob === undefined) continue;
+      body.append(`icon-${target}`, blob as Blob);
     }
 
     const url = `${import.meta.env.DEV ? process.env.BASE_URL : ""}`;
@@ -205,21 +235,22 @@ export default class Bundler {
       const json = await response.json();
 
       // process the response
-      for (const [key, value] of Object.entries(json)) {
-        if (key !== "log") {
-          const decoded = await fetch(`data:file/${key};base64,${value}`);
-          const data = await decoded.blob();
+      let binaries: BundleCache = {};
 
-          const file = new File([data], key);
+      for (let [key, value] of Object.entries(json)) {
+        if (key === "log") continue;
 
-          content.set(key, file);
-        } else {
-          const content = new Blob([value as BlobPart], { type: "text/plain" });
-          this.log = new File([content], "log.txt");
-        }
+        const decodedBinary = await fetch(`data:file/${key};base64,${value}`);
+        const data = await decodedBinary.blob();
+
+        binaries[key as BundleType] = new File([data], key);
       }
 
-      return content;
+      if (json["log"] !== undefined) {
+        this.log = new File([json["log"]], "compile.log");
+      }
+
+      return binaries;
     } catch (error) {
       throw new Error("Failed to send request");
     }
