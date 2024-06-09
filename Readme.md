@@ -1,20 +1,37 @@
-# LÖVEBrew Bundler
+# Bundler
 
-Web-based service for building games with LÖVE Potion
+Bundler is a web-based service designed to streamline the process of managing [LÖVE Potion](https://github.com/lovebrew/lovepotion) games. With Bundler, users can upload their games, convert assets, and fuse games together, all through a convenient web interface.
 
-## Installing
+## Features
 
-1. Make sure you are running Python >= 3.11
-2. Clone this repository with `git clone --recurse-submodule https://github.com/lovebrew/bundler.git`
-3. Run `pip install .` inside the repository directory
-4. Alternatively, you can [use venv](https://docs.python.org/3/library/venv.html) to avoid conflicts with your local packages.
-    - If you use Visual Studio Code, check [this page](https://code.visualstudio.com/docs/python/environments)
+- **Asset Conversion**: Convert supported texture and font formats to those compatible with LÖVE Potion on 3DS.
+- **Game Packaging**: Create a binary for your game that can be run on 3DS, Switch, and Wii U with custom metadata and icons.
+## Run Locally
 
-## Running
+Clone the project
 
-- **Production mode:** `waitress-serve --call "bundler:create_app()"`
-- **Development mode:** `flask --app "bundler:create_app(dev=True)" run --debug`
+```bash
+  git clone https://github.com/lovebrew/bundler
+```
 
-The webserver does have a few dependencies outside of python: tex3ds, mkbcfnt, and several other homebrew tools provided by [devitPro's package manager]([https://github.com/devkitpro/devkitpro-pacman](https://devkitpro.org/wiki/devkitPro_pacman)). Once installed, simply run `pacman -S tex3ds 3ds-tools switch-tools wiiu-tools`.
+Open the solution `bundler.sln` in Visual Studio or Visual Studio Code and select `Bundler.Server` to run. Click the play button to launch and point your browser to `http://localhost:5001`.
 
-You will also need the raw ELF binaries for [LÖVE Potion](https://github.com/lovebrew/lovepotion) along with the RomFS files and icons. These are to be placed inside of folders in `lovebrew-webserver/bin` based on each console: `ctr` for 3DS, `hac` for Switch, and `cafe` for Wii U.
+
+## Dependencies
+
+In order for the application to properly work, several files must be given in the `Resources` directory inside of the `Bundler.Server` project. These files are specific to each console which are the ELF binaries, shaders and RomFS data.
+
+Furthermore, for texture and font conversions to work, `tex3ds` and `mkbcfnt` must be installed which are provided by [devitPro's package manager](https://devkitpro.org/wiki/devkitPro_pacman). The following packages must also be installed from devkitPro-pacman for fused game content to work as well: `3ds-tools`, `switch-tools`, and `wiiu-tools`.
+## Running Tests
+
+To run tests, the Bundler will require being published for your platform first.
+
+```bash
+  dotnet publish --self-contained
+```
+
+Once this is built, the resulting published binary must be ran. Once it's live you can run tests.
+
+```
+  dotnet test
+```
