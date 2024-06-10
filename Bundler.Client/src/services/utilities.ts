@@ -77,7 +77,7 @@ export async function validate(file: MediaFile): Promise<boolean> {
   return false;
 }
 
-export async function convertFiles(files: File[]): Promise<MediaFile[]> {
+export async function convertFiles(files: Array<File>): Promise<Array<MediaFile>> {
   if (files.length === 0) return Array<MediaFile>();
 
   return await converter.convert(

@@ -1,7 +1,7 @@
 import JSZip, { JSZipObject } from "jszip";
 import Config, { ConfigMetadata, parseConfig } from "./Config";
 
-import BundleIcons, { BundleType } from "./types";
+import { BundleIcons, BundleType } from "./types";
 
 /*
  ** Bundler class

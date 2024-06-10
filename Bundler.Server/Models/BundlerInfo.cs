@@ -13,8 +13,6 @@ namespace Bundler.Server.Models
         public string Version { get; set; } = "0.11.0";
 
         public new string ToString()
-        {
-            return JsonConvert.SerializeObject(this, Formatting.Indented);
-        }
+            => JsonConvert.SerializeObject(this, Formatting.Indented);
     }
 }
