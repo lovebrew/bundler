@@ -27,7 +27,8 @@ export function isValidFile(file: File): boolean {
   return isImageFile(file) || isFontFile(file) || isZipFile(file);
 }
 
-import MediaConverter, { MediaFile } from "./MediaConverter";
+import MediaConverter from "./MediaConverter";
+import { MediaFile } from "./types";
 
 const converter = new MediaConverter("/convert");
 
@@ -77,7 +78,9 @@ export async function validate(file: MediaFile): Promise<boolean> {
   return false;
 }
 
-export async function convertFiles(files: Array<File>): Promise<Array<MediaFile>> {
+export async function convertFiles(
+  files: Array<File>
+): Promise<Array<MediaFile>> {
   if (files.length === 0) return Array<MediaFile>();
 
   return await converter.convert(

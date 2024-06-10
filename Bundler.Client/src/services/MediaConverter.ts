@@ -1,14 +1,6 @@
 import { validate } from "./utilities";
 
-export type MediaResponse = {
-  [key: string]: string;
-  log: string;
-};
-
-export type MediaFile = {
-  data: Blob;
-  filepath: string;
-};
+import { MediaFile, MediaResponse } from "./types";
 
 export default class MediaConverter {
   protected url: string;

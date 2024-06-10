@@ -6,6 +6,8 @@ import {
   BundleType,
   BundleAssets,
   getExtension,
+  BundleAssetCache,
+  MediaFile,
 } from "./types";
 
 import { convertFiles, isMediaFile, getConversionLog } from "./utilities";
@@ -33,24 +35,50 @@ export default class Bundler {
     this.file = zip;
   }
 
-  private async isCached(file: File): Promise<boolean> {
-    const value = new TextDecoder().decode(await file.arrayBuffer());
-    const hash = MurmurHash3(value).result().toString();
-
-    const cache = await this.getCachedAsset(hash);
-
-    return cache !== null;
-  }
-
+  /*
+   ** Retrieves a 3DS converted asset from IndexDB
+   ** @param {string} contentHash - The hash of the content to retrieve.
+   ** @returns {Promise<File | null>} - The file from the cache.
+   */
   private async getCachedAsset(contentHash: string): Promise<File | null> {
     return await assetsCache.getItem(contentHash);
   }
 
+  /*
+   ** Caches a 3DS converted asset into IndexDB
+   ** @param {string} contentHash - The hash of the content to cache.
+   ** @param {File} cache - The file to cache.
+   */
   private async setCachedAsset(
     contentHash: string,
     cache: File
   ): Promise<void> {
-    await assetsCache.setItem(contentHash, cache);
+    const today = new Date();
+    const expiration = new Date(today.setDate(today.getDate() + 3)).valueOf();
+    const value: BundleAssetCache = { file: cache, timestamp: expiration };
+
+    await assetsCache.setItem(contentHash, value);
+  }
+
+  private async cacheAsset(file: File, converted: Array<MediaFile>) {
+    const filename = file.name.split(".")[0];
+    console.log("Caching file...", filename);
+
+    const convertedFile = converted.find((element) => {
+      const convertedFilename = element.filepath.split(".")[0];
+      console.log("Found converted file:", convertedFilename);
+      return convertedFilename === filename;
+    });
+
+    const value = new TextDecoder().decode(await file.arrayBuffer());
+    const hash = MurmurHash3(value).result().toString();
+
+    const cache = await this.getCachedAsset(hash);
+    if (convertedFile && cache === null) {
+      console.log("Caching converted file...");
+      const file = new File([convertedFile.data], convertedFile.filepath);
+      this.setCachedAsset(hash, file);
+    }
   }
 
   /**
@@ -72,58 +100,33 @@ export default class Bundler {
     // things we could convert
     const convertable = files.filter((file) => isMediaFile(file));
 
-    if (target === ("ctr" as BundleType)) {
+    if (target === "ctr") {
       console.log("Converting files for CTR target...");
 
-      const cached = convertable.filter(
-        async (file) => await this.isCached(file)
-      );
+      const cached: Array<File> = [];
+      const nonCached: Array<File> = [];
 
-      const nonCached = convertable.filter(
-        async (file) => !(await this.isCached(file))
-      );
+      for (const file of convertable) {
+        const asset = await this.getCachedAsset(file.name);
+
+        if (asset !== null) {
+          cached.push(asset);
+        } else {
+          nonCached.push(file);
+        }
+      }
 
       const converted = await convertFiles(nonCached);
 
       nonCached.forEach(async (file) => {
-        const filename = file.name.split(".")[0];
-        console.log("Caching file...", filename);
-        const convertedFile = converted.find((element) => {
-          const convertedFilename = element.filepath.split(".")[0];
-          console.log("Found converted file:", convertedFilename);
-          return convertedFilename === filename;
-        });
-
-        const value = new TextDecoder().decode(await file.arrayBuffer());
-        const hash = MurmurHash3(value).result().toString();
-
-        if (convertedFile) {
-          console.log("Caching converted file...");
-          const file = new File([convertedFile.data], convertedFile.filepath);
-          this.setCachedAsset(hash, file);
-        }
+        await this.cacheAsset(file, converted);
       });
 
       const final = converted.map(
         (file) => new File([file.data], file.filepath)
       );
 
-      const cachedFiles = (
-        await Promise.all(
-          cached.map(async (file) => {
-            const contentHash = MurmurHash3(
-              new TextDecoder().decode(await file.arrayBuffer())
-            )
-              .result()
-              .toString();
-
-            const cachedFile = await this.getCachedAsset(contentHash);
-            return cachedFile;
-          })
-        )
-      ).filter((file) => file !== null) as Array<File>;
-
-      result = main.concat(cachedFiles, final);
+      result = main.concat(cached, final);
     } else {
       result = main.concat(convertable);
     }
