@@ -58,7 +58,7 @@ namespace Bundler.QA.Frontend
         [TestCase("small_height.jpg")]
         [TestCase("small_width.jpg")]
         public void TestUploadSmallFileDimensions(string filename)
-        { 
+        {
             this._page.UploadFile(filename);
             this._page.AssertErrorToast(string.Format(this.InvalidTexture, filename));
         }

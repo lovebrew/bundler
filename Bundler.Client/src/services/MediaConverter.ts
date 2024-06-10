@@ -4,10 +4,18 @@ import { MediaFile, MediaResponse } from "./types";
 
 export default class MediaConverter {
   protected url: string;
-  public log!: File;
+  private static log?: File;
 
   constructor(path: string) {
     this.url = `${import.meta.env.DEV ? process.env.BASE_URL : ""}${path}`;
+  }
+
+  public static getConversionLog(): File | undefined {
+    return MediaConverter.log;
+  }
+
+  public static clearConversionLog(): void {
+    MediaConverter.log = undefined;
   }
 
   protected isMediaResponse(response: unknown): response is MediaResponse {
@@ -85,13 +93,15 @@ export default class MediaConverter {
 
         const content = new Blob([decoded], { type });
         file = { filepath, data: content };
-      } else {
-        const content = new Blob([response[key]], { type: "text/plain" });
-        file = { filepath: "convert.log", data: content };
-        this.log = new File([content], "convert.log");
-      }
 
-      mediaFiles.push(file);
+        mediaFiles.push(file);
+      }
+    }
+
+    if (response["log"]) {
+      const content = new Blob([response["log"]], { type: "text/plain" });
+      file = { filepath: "convert.log", data: content };
+      MediaConverter.log = new File([content], "convert.log");
     }
 
     return mediaFiles;

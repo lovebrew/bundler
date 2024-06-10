@@ -87,7 +87,3 @@ export async function convertFiles(
     files.map((file: File) => ({ filepath: file.name, data: file }))
   );
 }
-
-export function getConversionLog(): File {
-  return converter.log;
-}

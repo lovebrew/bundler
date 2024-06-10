@@ -1,19 +1,47 @@
-import localforage from "localforage"
+import localforage from "localforage";
+import { BundlerCacheItem } from "./services/types";
 
-export const binariesCache = localforage.createInstance({
-    name: "bundler",
-    storeName: "binaryCache",
-    driver: localforage.INDEXEDDB,
-});
+class Botanist {
+    private storage: LocalForage;
+    private isReady: boolean = false;
 
-export const assetsCache = localforage.createInstance({
-    name: "bundler",
-    storeName: "assetCache",
-    driver: localforage.INDEXEDDB,
-});
+    constructor(name: string, storeName: string) {
+        this.storage = localforage.createInstance({
+            name,
+            storeName,
+            driver: localforage.INDEXEDDB,
+        });
+    }
 
-export const timestampsCache = localforage.createInstance({
-    name: "bundler",
-    storeName: "timestampCache",
-    driver: localforage.INDEXEDDB,
-});
+    private async checkTimestamps(): Promise<void> {
+        if (this.isReady) return;
+
+        const currentTime = Date.now();
+
+        if (await this.storage.length() === 0) return;
+
+        const keys = await this.storage.keys();
+
+        for (const key of keys) {
+            const item: BundlerCacheItem | null = await this.storage.getItem(key);
+
+            if (item !== null && item.timestamp < currentTime) {
+                await this.storage.removeItem(key);
+            }
+        }
+
+        this.isReady = true;
+    }
+
+    public async getItem(key: string): Promise<any | null> {
+        if (!this.isReady) await this.checkTimestamps();
+        return await this.storage.getItem(key);
+    }
+
+    public async setItem(key: string, value: BundlerCacheItem): Promise<void> {
+        await this.storage.setItem(key, value);
+    }
+};
+
+export const binariesCache = new Botanist("bundler", "binaryCache");
+export const assetsCache = new Botanist("bundler", "assetCache");

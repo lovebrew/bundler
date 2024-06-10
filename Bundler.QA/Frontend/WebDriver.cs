@@ -26,7 +26,7 @@ namespace Bundler.QA.Frontend
             this._driver = CreateWebDriver(type);
 
             this._driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-            this._driver.Url = "http://localhost:5000";
+            this._driver.Url = "http://localhost:5001";
         }
 
         public void Destroy()

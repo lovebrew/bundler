@@ -13,7 +13,7 @@ import errorSfx from "@assets/sound/error.ogg";
 import useSound from "use-sound";
 import JSZip from "jszip";
 
-import { MediaFile } from "./services/MediaConverter";
+import { MediaFile } from "./services/types";
 import { isZipFile, convertFiles, isValidFile, isFontFile, isImageFile } from "./services/utilities";
 
 const downloadBlob = (blob: Blob) => {

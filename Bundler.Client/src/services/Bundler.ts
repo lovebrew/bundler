@@ -10,7 +10,8 @@ import {
   MediaFile,
 } from "./types";
 
-import { convertFiles, isMediaFile, getConversionLog } from "./utilities";
+import { convertFiles, isMediaFile } from "./utilities";
+import MediaConverter from "./MediaConverter";
 
 import JSZip from "jszip";
 import MurmurHash3 from "imurmurhash";
@@ -23,7 +24,9 @@ export type BundlerResponse = {
 
 export default class Bundler {
   private file: File;
-  public log!: File;
+
+  private log?: File;
+  private convertLog?: File;
 
   readonly extensions = {
     ctr: "3dsx",
@@ -41,7 +44,10 @@ export default class Bundler {
    ** @returns {Promise<File | null>} - The file from the cache.
    */
   private async getCachedAsset(contentHash: string): Promise<File | null> {
-    return await assetsCache.getItem(contentHash);
+    const value: BundleAssetCache | null = await assetsCache.getItem(
+      contentHash
+    );
+    return value?.file || null;
   }
 
   /*
@@ -62,11 +68,9 @@ export default class Bundler {
 
   private async cacheAsset(file: File, converted: Array<MediaFile>) {
     const filename = file.name.split(".")[0];
-    console.log("Caching file...", filename);
 
     const convertedFile = converted.find((element) => {
       const convertedFilename = element.filepath.split(".")[0];
-      console.log("Found converted file:", convertedFilename);
       return convertedFilename === filename;
     });
 
@@ -75,7 +79,6 @@ export default class Bundler {
 
     const cache = await this.getCachedAsset(hash);
     if (convertedFile && cache === null) {
-      console.log("Caching converted file...");
       const file = new File([convertedFile.data], convertedFile.filepath);
       this.setCachedAsset(hash, file);
     }
@@ -93,7 +96,7 @@ export default class Bundler {
   ): Promise<Blob> {
     const zip = new JSZip();
 
-    // anything not convertable
+    // anything not convertable, don't include the damn log
     const main = files.filter((file) => !isMediaFile(file));
     let result: Array<File> = [];
 
@@ -101,13 +104,16 @@ export default class Bundler {
     const convertable = files.filter((file) => isMediaFile(file));
 
     if (target === "ctr") {
-      console.log("Converting files for CTR target...");
+      MediaConverter.clearConversionLog();
 
       const cached: Array<File> = [];
       const nonCached: Array<File> = [];
 
       for (const file of convertable) {
-        const asset = await this.getCachedAsset(file.name);
+        const value = new TextDecoder().decode(await file.arrayBuffer());
+        const hash = MurmurHash3(value).result().toString();
+
+        const asset = await this.getCachedAsset(hash);
 
         if (asset !== null) {
           cached.push(asset);
@@ -173,6 +179,7 @@ export default class Bundler {
     const hashData = MurmurHash3(await bundle.getHashData())
       .result()
       .toString();
+
     const cache = await this.getCachedBundles(hashData);
 
     if (cache !== null) {
@@ -252,10 +259,11 @@ export default class Bundler {
       bundle.file(file.name, file);
     }
 
-    bundle.file("compile.log", this.log);
+    if (this.log && this.log.size > 0) bundle.file("compile.log", this.log);
 
-    if (getConversionLog() !== null) {
-      bundle.file("convert.log", getConversionLog()!);
+    const convertedLog = MediaConverter.getConversionLog();
+    if (convertedLog !== undefined && convertedLog.size > 0) {
+      bundle.file("convert.log", convertedLog);
     }
 
     return {

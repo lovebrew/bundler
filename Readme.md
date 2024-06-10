@@ -24,13 +24,13 @@ In order for the application to properly work, several files must be given in th
 Furthermore, for texture and font conversions to work, `tex3ds` and `mkbcfnt` must be installed which are provided by [devitPro's package manager](https://devkitpro.org/wiki/devkitPro_pacman). The following packages must also be installed from devkitPro-pacman for fused game content to work as well: `3ds-tools`, `switch-tools`, and `wiiu-tools`.
 ## Running Tests
 
-To run tests, the Bundler will require being published for your platform first.
+To run tests, the Bundler will require being ran locally first.
 
 ```
-  dotnet publish --self-contained
+  dotnet run --project Bundler.Server/Bundler.Server.csproj
 ```
 
-Once this is built, the resulting published binary must be ran. Once it's live you can run tests.
+Once this is running, tests may be run.
 
 ```
   dotnet test

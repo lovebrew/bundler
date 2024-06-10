@@ -12,13 +12,13 @@ namespace Bundler.Server.Controllers
     {
         private static readonly Dictionary<string, BundlerData> Data = new()
         {
-            { 
+            {
                 "ctr", new()
                 {
                     Icon = "Resources/ctr/icon.png",
                     RomFS = "Resources/ctr/files.romfs",
                     Binary = "Resources/ctr/lovepotion.elf"
-                } 
+                }
             },
             {
                 "hac", new()
@@ -57,7 +57,7 @@ namespace Bundler.Server.Controllers
         }
 
         private static string GetBase64FromContent(string filepath)
-            =>  Convert.ToBase64String(System.IO.File.ReadAllBytes(filepath));
+            => Convert.ToBase64String(System.IO.File.ReadAllBytes(filepath));
 
         #region Compile Methods
 
@@ -189,7 +189,7 @@ namespace Bundler.Server.Controllers
                     return string.Empty;
                 }
             }
-            
+
             return GetBase64FromContent(Path.Combine(directory, $"{query.Title}.wuhb"));
         }
 
@@ -234,7 +234,7 @@ namespace Bundler.Server.Controllers
                 /* save the custom icon, if it exists */
 
                 IFormFile? icon;
-                if ((icon = files.FirstOrDefault(x => x.Name == $"icon-{target}")) is not null)   
+                if ((icon = files.FirstOrDefault(x => x.Name == $"icon-{target}")) is not null)
                 {
                     iconPath = Path.Combine(directory, icon.FileName);
                     using var stream = new FileStream(iconPath, FileMode.Create);
@@ -247,7 +247,7 @@ namespace Bundler.Server.Controllers
                     this._logger.LogInformation($"Using custom icon for {target}");
 
                 var content = string.Empty;
-                
+
                 switch (target)
                 {
                     case "ctr":
