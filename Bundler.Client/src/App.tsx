@@ -14,7 +14,19 @@ import useSound from "use-sound";
 import JSZip from "jszip";
 
 import { MediaFile } from "./services/types";
-import { isZipFile, convertFiles, isValidFile, isFontFile, isImageFile } from "./services/utilities";
+import MediaConverter from "./services/MediaConverter";
+
+import mime from "mime";
+
+const ZipTypes = ["application/x-zip-compressed", "application/zip"];
+
+const isZipFile = (file: File) => {
+  const mimeType = mime.getType(file.name);
+
+  if (mimeType === null) return false;
+
+  return ZipTypes.includes(mimeType);
+}
 
 const downloadBlob = (blob: Blob) => {
   const link = document.createElement("a");
@@ -64,10 +76,10 @@ function App() {
     });
   };
 
-  const handleConversions = async (files: File[]) => {
-    toast.promise(convertFiles(files), {
+  const handleConversions = async (files: Array<File>) => {
+    toast.promise(MediaConverter.instance.convert(files), {
       loading: "Uploading..",
-      success: (files: MediaFile[]) => {
+      success: (files: Array<MediaFile>) => {
         playSuccess();
         const zip = new JSZip();
 
@@ -84,20 +96,19 @@ function App() {
     });
   };
 
-  const handleUpload = async (files: File[]) => {
+  const handleUpload = async (files: Array<File>) => {
     try {
+      if (isZipFile(files[0])) return handleZipUpload(files[0]);
+
       for (const file of files) {
         if (file.size === 0) throw Error("Invalid file.");
 
-        if (!isValidFile(file)) throw Error("Invalid file type.");
-
-        if (isZipFile(file)) handleZipUpload(file);
+        if (!MediaConverter.isValidFileType(file)) throw Error("Invalid file type.");
       }
 
-      if (files.length > 0 && files.every((file) => isFontFile(file) || isImageFile(file))) {
+      if (MediaConverter.hasFiles(files)) {
         handleConversions(files);
       }
-
     } catch (exception) {
       toast.error(handleUploadError((exception as Error).message));
     }

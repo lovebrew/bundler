@@ -1,13 +1,28 @@
-import { validate } from "./utilities";
-
+import mime from "mime";
 import { MediaFile, MediaResponse } from "./types";
 
 export default class MediaConverter {
   protected url: string;
   private static log?: File;
 
-  constructor(path: string) {
-    this.url = `${import.meta.env.DEV ? process.env.BASE_URL : ""}${path}`;
+  private static ImageTypes = ["image/png", "image/jpeg", "image/jpg"];
+  private static FontTypes = ["font/ttf", "font/otf"];
+
+  private static MAX_IMAGE_DIM = 1024;
+  private static MIN_IMAGE_DIM = 3;
+
+  static #instance: MediaConverter;
+
+  private constructor() {
+    this.url = `${import.meta.env.DEV ? process.env.BASE_URL : ""}/convert`;
+  }
+
+  public static get instance(): MediaConverter {
+    if (!MediaConverter.#instance) {
+      MediaConverter.#instance = new MediaConverter();
+    }
+
+    return MediaConverter.#instance;
   }
 
   public static getConversionLog(): File | undefined {
@@ -37,6 +52,109 @@ export default class MediaConverter {
     return true;
   }
 
+  private static async validateImage(
+    name: string,
+    data: Blob
+  ): Promise<boolean> {
+    try {
+      const image = await createImageBitmap(data);
+      const dimensions = [image.width, image.height];
+
+      if (
+        dimensions.some((dim) => dim > MediaConverter.MAX_IMAGE_DIM) ||
+        dimensions.some((dim) => dim < MediaConverter.MIN_IMAGE_DIM)
+      ) {
+        return false;
+      } else return true;
+    } catch (exception) {
+      throw Error(`Texture '${name}' is invalid.`);
+    }
+  }
+
+  private static async validateFont(
+    name: string,
+    data: Blob
+  ): Promise<boolean> {
+    try {
+      const font = new FontFace("test", await data.arrayBuffer());
+      await font.load();
+
+      return true;
+    } catch (exception) {
+      throw Error(`Font '${name}' is invalid.`);
+    }
+  }
+
+  private static getFileMimetype(file: MediaFile | File): string | null {
+    const filename = file instanceof File ? file.name : file.filepath;
+    return mime.getType(filename);
+  }
+
+  /**
+   * Checks if the file is a valid texture mimetype
+   * @param file The file to validate
+   * @returns { boolean } True if the file is a valid texture mimetype
+   */
+  public static isValidTextureType(file: MediaFile | File): boolean {
+    const type = MediaConverter.getFileMimetype(file);
+
+    if (type === null) return false;
+    return MediaConverter.ImageTypes.includes(type);
+  }
+
+  /**
+   * Checks if the file is a valid font mimetype
+   * @param file The file to validate
+   * @returns { boolean } True if the file is a valid font mimetype
+   */
+  public static isValidFontType(file: MediaFile | File): boolean {
+    const type = MediaConverter.getFileMimetype(file);
+
+    if (type === null) return false;
+    return MediaConverter.FontTypes.includes(type);
+  }
+
+  /**
+   * Checks if the file is a valid mimetype for conversion
+   * @param file The file to validate
+   * @returns { boolean } True if the file is a valid mimetype for conversion
+   */
+  public static isValidFileType(file: MediaFile | File): boolean {
+    if (MediaConverter.isValidTextureType(file)) {
+      return true;
+    } else if (MediaConverter.isValidFontType(file)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Validates the file based on its mimetype and content
+   * @param file The file to validate
+   * @returns { Promise<boolean> } True if the file is valid
+   */
+  public static async validateFile(file: MediaFile | File): Promise<boolean> {
+    if (!MediaConverter.isValidFileType(file)) return false;
+
+    const filename = file instanceof File ? file.name : file.filepath;
+    const data = file instanceof File ? file : file.data;
+
+    if (MediaConverter.isValidTextureType(file)) {
+      return await this.validateImage(filename, data);
+    } else if (MediaConverter.isValidFontType(file)) {
+      return await this.validateFont(filename, data);
+    }
+
+    return false;
+  }
+
+  public static hasFiles(files: Array<File>): boolean {
+    if (files.length === 0) false;
+
+    return files.every((file) => MediaConverter.isValidFileType(file));
+  }
+
   protected isMediaFile(file: unknown): file is MediaFile {
     return (
       typeof file === "object" &&
@@ -57,11 +175,26 @@ export default class MediaConverter {
     }
   }
 
-  public async convert(files: MediaFile[]): Promise<MediaFile[]> {
+  public async convert(
+    files: Array<MediaFile> | Array<File>
+  ): Promise<Array<MediaFile>> {
+    files = files.map((file) => {
+      if (file instanceof File) {
+        return {
+          filepath: file.name,
+          data: file,
+        };
+      }
+
+      return file;
+    });
+
+    if (files.length === 0) return Array<MediaFile>();
+
     const body = new FormData();
 
     for (const file of files) {
-      if (!(await validate(file))) {
+      if (!(await MediaConverter.validateFile(file))) {
         throw Error(`Invalid file: ${file.filepath}`);
       }
       body.append(file.filepath, file.data);
@@ -82,8 +215,6 @@ export default class MediaConverter {
   ): Promise<Array<MediaFile>> {
     const mediaFiles: Array<MediaFile> = [];
 
-    let file: MediaFile;
-
     for (const key in response) {
       if (key !== "log") {
         const filepath = key;
@@ -92,15 +223,13 @@ export default class MediaConverter {
         ).blob();
 
         const content = new Blob([decoded], { type });
-        file = { filepath, data: content };
-
+        const file: MediaFile = { filepath, data: content };
         mediaFiles.push(file);
       }
     }
 
-    if (response["log"]) {
+    if (response["log"] !== undefined) {
       const content = new Blob([response["log"]], { type: "text/plain" });
-      file = { filepath: "convert.log", data: content };
       MediaConverter.log = new File([content], "convert.log");
     }
 

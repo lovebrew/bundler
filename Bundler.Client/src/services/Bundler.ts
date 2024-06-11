@@ -10,7 +10,6 @@ import {
   MediaFile,
 } from "./types";
 
-import { convertFiles, isMediaFile } from "./utilities";
 import MediaConverter from "./MediaConverter";
 
 import JSZip from "jszip";
@@ -24,9 +23,7 @@ export type BundlerResponse = {
 
 export default class Bundler {
   private file: File;
-
   private log?: File;
-  private convertLog?: File;
 
   readonly extensions = {
     ctr: "3dsx",
@@ -97,11 +94,13 @@ export default class Bundler {
     const zip = new JSZip();
 
     // anything not convertable, don't include the damn log
-    const main = files.filter((file) => !isMediaFile(file));
+    const main = files.filter((file) => !MediaConverter.isValidFileType(file));
     let result: Array<File> = [];
 
     // things we could convert
-    const convertable = files.filter((file) => isMediaFile(file));
+    const convertable = files.filter((file) =>
+      MediaConverter.isValidFileType(file)
+    );
 
     if (target === "ctr") {
       MediaConverter.clearConversionLog();
@@ -122,7 +121,7 @@ export default class Bundler {
         }
       }
 
-      const converted = await convertFiles(nonCached);
+      const converted = await MediaConverter.instance.convert(nonCached);
 
       nonCached.forEach(async (file) => {
         await this.cacheAsset(file, converted);
