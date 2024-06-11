@@ -149,7 +149,7 @@ export default class MediaConverter {
     return false;
   }
 
-  public static hasFiles(files: Array<File>): boolean {
+  public static areFilesValid(files: Array<File>): boolean {
     if (files.length === 0) false;
 
     return files.every((file) => MediaConverter.isValidFileType(file));
@@ -178,7 +178,7 @@ export default class MediaConverter {
   public async convert(
     files: Array<MediaFile> | Array<File>
   ): Promise<Array<MediaFile>> {
-    files = files.map((file) => {
+    const fileMap = files.map((file) => {
       if (file instanceof File) {
         return {
           filepath: file.name,
@@ -189,11 +189,11 @@ export default class MediaConverter {
       return file;
     });
 
-    if (files.length === 0) return Array<MediaFile>();
+    if (fileMap.length === 0) return Array<MediaFile>();
 
     const body = new FormData();
 
-    for (const file of files) {
+    for (const file of fileMap) {
       if (!(await MediaConverter.validateFile(file))) {
         throw Error(`Invalid file: ${file.filepath}`);
       }

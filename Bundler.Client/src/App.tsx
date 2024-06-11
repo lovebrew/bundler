@@ -98,15 +98,15 @@ function App() {
 
   const handleUpload = async (files: Array<File>) => {
     try {
-      if (isZipFile(files[0])) return handleZipUpload(files[0]);
-
       for (const file of files) {
         if (file.size === 0) throw Error("Invalid file.");
 
-        if (!MediaConverter.isValidFileType(file)) throw Error("Invalid file type.");
+        if (!MediaConverter.isValidFileType(file) && !isZipFile(file)) throw Error("Invalid file type.");
+
+        if (isZipFile(file)) return handleZipUpload(file);
       }
 
-      if (MediaConverter.hasFiles(files)) {
+      if (MediaConverter.areFilesValid(files)) {
         handleConversions(files);
       }
     } catch (exception) {

@@ -77,7 +77,7 @@ export default class Bundler {
     const cache = await this.getCachedAsset(hash);
     if (convertedFile && cache === null) {
       const file = new File([convertedFile.data], convertedFile.filepath);
-      this.setCachedAsset(hash, file);
+      await this.setCachedAsset(hash, file);
     }
   }
 
@@ -123,9 +123,9 @@ export default class Bundler {
 
       const converted = await MediaConverter.instance.convert(nonCached);
 
-      nonCached.forEach(async (file) => {
+      for (const file of nonCached) {
         await this.cacheAsset(file, converted);
-      });
+      }
 
       const final = converted.map(
         (file) => new File([file.data], file.filepath)
@@ -186,7 +186,7 @@ export default class Bundler {
     }
 
     const binaries = await this.sendCompile(targets, icons, metadata);
-    this.setCachedBundle(hashData, binaries);
+    await this.setCachedBundle(hashData, binaries);
 
     return this.fuseBundleContent(name, binaries, assets);
   }
