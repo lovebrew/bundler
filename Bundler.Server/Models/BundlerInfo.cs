@@ -2,6 +2,9 @@ using Newtonsoft.Json;
 
 namespace Bundler.Server.Models
 {
+    /// <summary>
+    /// Information about the server
+    /// </summary>
     public class BundlerInfo
     {
         public string Deployed { get; set; }

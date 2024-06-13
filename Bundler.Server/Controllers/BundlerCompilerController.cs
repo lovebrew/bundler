@@ -6,195 +6,75 @@ using Bundler.Server.Models;
 
 namespace Bundler.Server.Controllers
 {
+    /// <summary>
+    /// Controller for compiling bundles
+    /// </summary>
     [ApiController]
     [Route("compile")]
-    public class BundlerCompileController : ControllerBase
+    public partial class BundlerCompileController : ControllerBase
     {
-        private static readonly Dictionary<string, BundlerData> Data = new()
-        {
-            { 
-                "ctr", new()
-                {
-                    Icon = "Resources/ctr/icon.png",
-                    RomFS = "Resources/ctr/files.romfs",
-                    Binary = "Resources/ctr/lovepotion.elf"
-                } 
-            },
-            {
-                "hac", new()
-                {
-                    Icon = "Resources/hac/icon.jpg",
-                    RomFS = "Resources/hac/files.romfs",
-                    Binary = "Resources/hac/lovepotion.elf"
-                }
-            },
-            {
-                "cafe", new()
-                {
-                    Icon = "Resources/cafe/icon.png",
-                    RomFS = "Resources/cafe/content",
-                    Binary = "Resources/cafe/lovepotion.elf"
-                }
-            }
-        };
-
         private readonly Logger _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BundlerCompileController"/> class.
+        /// </summary>
         public BundlerCompileController()
         {
             this._logger = new();
         }
 
-        public static void Validate()
-        {
-            foreach (var data in Data.Values)
-                data.Validate();
-        }
-
-        public static string GetLastModified(string key)
-        {
-            return new FileInfo(Data[key].Binary).LastWriteTime.ToString("R");
-        }
-
         private static string GetBase64FromContent(string filepath)
-            =>  Convert.ToBase64String(System.IO.File.ReadAllBytes(filepath));
+            => Convert.ToBase64String(System.IO.File.ReadAllBytes(filepath));
 
-        #region Compile Methods
-
-        private string Create3DSX(string directory, BundlerQuery query, string iconPath)
+        private bool RunProcess(ProcessStartInfo info, string filename)
         {
-            Process process;
-            var path = Path.Join(directory, query.Title);
+            using Process process = new Process { StartInfo = info };
 
-            var info = query.GetSMDHCommand(directory, iconPath);
-            using (process = new Process { StartInfo = info })
+            if (!process.Start())
             {
-                if (!process.Start())
-                {
-                    this._logger.LogError("Failed to start smdhtool");
-                    return string.Empty;
-                }
-                else
-                    process.WaitForExit();
-
-                if (!Path.Exists($"{path}.smdh"))
-                {
-                    this._logger.LogError("Failed to create SMDH");
-                    return string.Empty;
-                }
+                this._logger.LogError($"Failed to start {info.FileName}");
+                return false;
             }
+            else
+                process.WaitForExit();
 
-            info = query.Get3DSXCommand(directory, Data["ctr"].Binary, Data["ctr"].RomFS);
-            using (process = new Process { StartInfo = info })
-            {
-                if (!process.Start())
-                {
-                    this._logger.LogError("Failed to start 3dsxtool");
-                    return string.Empty;
-                }
-                else
-                    process.WaitForExit();
+            if (Path.Exists(filename)) return true;
 
-                if (!Path.Exists($"{path}.3dsx"))
-                {
-                    this._logger.LogError("Failed to create 3DSX");
-                    return string.Empty;
-                }
-            }
-
-            return GetBase64FromContent(Path.Combine(directory, $"{query.Title}.3dsx"));
+            this._logger.LogError($"Failed to create {filename}");
+            return false;
         }
 
-        private string CreateNRO(string directory, BundlerQuery query, string iconPath)
+        private string Compile(string directory, string console, BundlerQuery query, string iconPath)
         {
-            Process process;
             var path = Path.Join(directory, query.Title);
+            var data = Resources.Data[console];
 
-            var info = query.GetNACPCommand(directory);
-            using (process = new Process { StartInfo = info })
+            (ProcessStartInfo info, string extension) = console switch
             {
-                if (!process.Start())
-                {
-                    this._logger.LogError("Failed to start nacptool");
-                    return string.Empty;
-                }
-                else
-                    process.WaitForExit();
+                "ctr" => (query.GetSMDHCommand(directory, iconPath), "smdh"),
+                "hac" => (query.GetNACPCommand(directory), "nacp"),
+                "cafe" => (query.GetRPLCommand(directory, data.Binary), "rpx"),
+                _ => throw new NotImplementedException()
+            };
 
-                if (!Path.Exists($"{path}.nacp"))
-                {
-                    this._logger.LogError("Failed to create NACP");
-                    return string.Empty;
-                }
-            }
+            if (!RunProcess(info, $"{path}.{extension}")) return string.Empty;
 
-            info = query.GetNROCommand(directory, Data["hac"].Binary, iconPath, Data["hac"].RomFS);
-            using (process = new Process { StartInfo = info })
+            (info, extension) = console switch
             {
-                if (!process.Start())
-                {
-                    this._logger.LogError("Failed to start elf2nro");
-                    return string.Empty;
-                }
-                else
-                    process.WaitForExit();
+                "ctr" => (query.Get3DSXCommand(directory, data.Binary, data.RomFS), "3dsx"),
+                "hac" => (query.GetNROCommand(directory, data.Binary, iconPath, data.RomFS), ".nacp"),
+                "cafe" => (query.GetWUHBCommand(directory, iconPath, data.RomFS), "wuhb"),
+                _ => throw new NotImplementedException()
+            };
 
-                if (!Path.Exists($"{path}.nro"))
-                {
-                    this._logger.LogError("Failed to create NRO");
-                    return string.Empty;
-                }
-            }
+            if (!RunProcess(info, $"{path}.{extension}")) return string.Empty;
 
-            return GetBase64FromContent(Path.Combine(directory, $"{query.Title}.nro"));
+            return GetBase64FromContent(Path.Combine(directory, $"{query.Title}.{extension}"));
         }
 
-        private string CreateWUHB(string directory, BundlerQuery query, string iconPath)
-        {
-            Process process;
-            var path = Path.Join(directory, query.Title);
-
-            var info = query.GetRPLCommand(directory, Data["cafe"].Binary);
-            using (process = new Process { StartInfo = info })
-            {
-                if (!process.Start())
-                {
-                    this._logger.LogError("Failed to start elf2rpl");
-                    return string.Empty;
-                }
-                else
-                    process.WaitForExit();
-
-                if (!Path.Exists($"{path}.rpx"))
-                {
-                    this._logger.LogError("Failed to create RPX");
-                    return string.Empty;
-                }
-            }
-
-            info = query.GetWUHBCommand(directory, iconPath, Data["cafe"].RomFS);
-            using (process = new Process { StartInfo = info })
-            {
-                if (!process.Start())
-                {
-                    this._logger.LogError("Failed to start wuhbtool");
-                    return string.Empty;
-                }
-                else
-                    process.WaitForExit();
-
-                if (!Path.Exists($"{path}.wuhb"))
-                {
-                    this._logger.LogError("Failed to create WUHB");
-                    return string.Empty;
-                }
-            }
-            
-            return GetBase64FromContent(Path.Combine(directory, $"{query.Title}.wuhb"));
-        }
-
-        #endregion
-
+        /// <summary>
+        /// Compiles the specified targets
+        /// </summary>
         [HttpPost]
         public IActionResult Post([FromQuery] BundlerQuery query)
         {
@@ -217,7 +97,7 @@ namespace Bundler.Server.Controllers
 
             foreach (var target in targets)
             {
-                if (!Data.TryGetValue(target, out var data))
+                if (!Resources.Data.TryGetValue(target, out var data))
                 {
                     this._logger.LogError($"Invalid target: {target}");
                     continue;
@@ -234,7 +114,7 @@ namespace Bundler.Server.Controllers
                 /* save the custom icon, if it exists */
 
                 IFormFile? icon;
-                if ((icon = files.FirstOrDefault(x => x.Name == $"icon-{target}")) is not null)   
+                if ((icon = files.FirstOrDefault(x => x.Name == $"icon-{target}")) is not null)
                 {
                     iconPath = Path.Combine(directory, icon.FileName);
                     using var stream = new FileStream(iconPath, FileMode.Create);
@@ -246,20 +126,7 @@ namespace Bundler.Server.Controllers
                 else
                     this._logger.LogInformation($"Using custom icon for {target}");
 
-                var content = string.Empty;
-                
-                switch (target)
-                {
-                    case "ctr":
-                        content = Create3DSX(directory, query, iconPath);
-                        break;
-                    case "hac":
-                        content = CreateNRO(directory, query, iconPath);
-                        break;
-                    case "cafe":
-                        content = CreateWUHB(directory, query, iconPath);
-                        break;
-                }
+                var content = Compile(directory, target, query, iconPath);
 
                 this._logger.LogInformation($"--- [END] ---");
 
@@ -277,7 +144,10 @@ namespace Bundler.Server.Controllers
             Directory.Delete(tempDirectory, true);
 
             if (partial)
-                return StatusCode(StatusCodes.Status206PartialContent, fileData);
+            {
+                var code = targets.Count == 1 ? StatusCodes.Status422UnprocessableEntity : StatusCodes.Status206PartialContent;
+                return StatusCode(code, fileData);
+            }
 
             return Ok(fileData);
         }
