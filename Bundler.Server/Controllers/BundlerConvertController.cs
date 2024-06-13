@@ -1,13 +1,15 @@
-using Microsoft.AspNetCore.Mvc;
-
 using System.Diagnostics;
+
+using Microsoft.AspNetCore.Mvc;
 
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
-using Bundler.Server.Models;
 
 namespace Bundler.Server.Controllers
 {
+    /// <summary>
+    /// Controller for converting media files
+    /// </summary>
     [ApiController]
     [Route("convert")]
     public class BundlerConvertController : ControllerBase
@@ -35,6 +37,9 @@ namespace Bundler.Server.Controllers
 
         private readonly Logger _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BundlerConvertController"/> class.
+        /// </summary>
         public BundlerConvertController()
         {
             this._logger = new();
@@ -85,6 +90,9 @@ namespace Bundler.Server.Controllers
             return false;
         }
 
+        /// <summary>
+        /// Converts uploaded files to the appropriate format
+        /// </summary>
         [HttpPost]
         public IActionResult Post()
         {
@@ -111,7 +119,7 @@ namespace Bundler.Server.Controllers
 
                 if (!MimeTypes.TryGetMimeType(name, out var mimeType))
                     return BadRequest($"Invalid file type from '{name}'");
-                
+
                 if (!ImageMimeTypes.Contains(mimeType) && !FontMimeTypes.Contains(mimeType))
                     return StatusCode(StatusCodes.Status415UnsupportedMediaType);
 

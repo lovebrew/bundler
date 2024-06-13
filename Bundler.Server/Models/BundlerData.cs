@@ -1,21 +1,26 @@
 namespace Bundler.Server.Models
 {
+    /// <summary>
+    /// Represents the data for the bundler
+    /// </summary>
     public class BundlerData
     {
-        public string Icon { get; set; }
-        public string RomFS { get; set; }
-        public string Binary { get; set; }
-
-        public void Validate()
+        /// <value>Application Icon path</value>
+        public string Icon { get; set; } = default!;
+        /// <value>Application RomFS path</value>
+        public string RomFS { get; set; } = default!;
+        /// <value>Application Binary (ELF) path</value>
+        public string Binary { get; set; } = default!;
+        /// <value>Application Binary Timestamp</value>
+        public string Timestamp
         {
-            if (!Path.Exists(Icon))
-                throw new Exception($"Icon file not found: {Icon}");
-
-            if (!Path.Exists(RomFS))
-                throw new Exception($"RomFS file not found: {RomFS}");
-
-            if (!Path.Exists(Binary))
-                throw new Exception($"Binary file not found: {Binary}");
+            get
+            {
+                if (Path.Exists(this.Binary))
+                    return new FileInfo(this.Binary).LastWriteTime.ToString("R");
+                else
+                    return "Unknown";
+            }
         }
     }
 }
