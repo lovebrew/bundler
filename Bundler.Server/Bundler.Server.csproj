@@ -30,42 +30,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\bundler.client\Bundler.Client.esproj">
+    <ProjectReference Include="..\Bundler.Client\Bundler.Client.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="Properties\CtrResources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CtrResources.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Properties\HacResources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>HacResources.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Properties\CafeResources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>CafeResources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\CtrResources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>CtrResources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Properties\HacResources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>HacResources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Properties\CafeResources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>CafeResources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
-
 </Project>

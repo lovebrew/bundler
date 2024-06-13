@@ -1,10 +1,17 @@
 namespace Bundler.Server.Models
 {
+    /// <summary>
+    /// Represents the data for the bundler
+    /// </summary>
     public class BundlerData
     {
-        public string Icon { get; set; }
-        public string RomFS { get; set; }
-        public string Binary { get; set; }
+        /// <value>Application Icon path</value>
+        public string Icon { get; set; } = default!;
+        /// <value>Application RomFS path</value>
+        public string RomFS { get; set; } = default!;
+        /// <value>Application Binary (ELF) path</value>
+        public string Binary { get; set; } = default!;
+        /// <value>Application Binary Timestamp</value>
         public string Timestamp
         {
             get

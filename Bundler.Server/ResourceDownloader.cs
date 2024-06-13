@@ -8,6 +8,9 @@ using Octokit;
 
 namespace Bundler
 {
+    /// <summary>
+    /// Bundler resources
+    /// </summary>
     public partial class Resources
     {
         private static readonly string AssemblyLocation = Assembly.GetExecutingAssembly().Location;
@@ -49,12 +52,6 @@ namespace Bundler
 
         private static string GetResourcePath(string subfolder, string filename)
             => Path.Join(ResourcesDirectory, subfolder, filename);
-
-        public static bool GetData(string key, out BundlerData? data)
-        {
-            bool success = Data.TryGetValue(key, out data);
-            return success;
-        }
 
         private static async Task<List<ReleaseAsset>> CheckRepositoryReleases(string repository, string? excluded = null)
         {
