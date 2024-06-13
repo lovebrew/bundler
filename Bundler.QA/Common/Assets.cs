@@ -7,8 +7,8 @@ namespace Bundler.QA.Common
         private const string ResourcesPath = "Resources";
         private static Assets? _instance = null;
 
-        private readonly Dictionary<string, byte[]> AssetData = new();
-        private readonly Dictionary<string, Dictionary<string, byte[]>> AssetCollections = new();
+        private readonly Dictionary<string, byte[]> AssetData = [];
+        private readonly Dictionary<string, Dictionary<string, byte[]>> AssetCollections = [];
 
         private Assets()
         {
@@ -17,8 +17,6 @@ namespace Bundler.QA.Common
                 var (name, data) = (Path.GetFullPath(file), File.ReadAllBytes(file));
                 this.AssetData.Add(name, data);
             }
-
-            this.AssetCollections.Add("BigImages", AssetData.Where(k => k.Key.Contains("cat_big")).ToDictionary(k => k.Key, v => v.Value));
         }
 
         public static Assets Instance()
@@ -34,12 +32,5 @@ namespace Bundler.QA.Common
         {
             return this.AssetData[name];
         }
-
-        public List<string> GetCollection(string name)
-        {
-            var collection = this.AssetCollections.Keys.FirstOrDefault(k => k.Equals(name));
-            return collection is null ? throw new KeyNotFoundException($"Collection not found: {name}") : this.AssetCollections[collection].Keys.ToList();
-        }
     }
-
 }

@@ -5,6 +5,9 @@ using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
 using System.Diagnostics;
+using OpenQA.Selenium.DevTools;
+using OpenQA.Selenium.DevTools.V123.IndexedDB;
+using OpenQA.Selenium.DevTools.V123;
 
 namespace Bundler.QA.Frontend
 {
@@ -57,6 +60,8 @@ namespace Bundler.QA.Frontend
             options.SetPreference("browser.download.folderList", 2);
             options.SetPreference("browser.download.manager.showWhenStarting", false);
             options.SetPreference("browser.download.dir", DownloadsPath);
+            options.SetPreference("user-data-dir", $"{Directory.GetCurrentDirectory()}\\firefox-profile");
+            options.EnableDevToolsProtocol = true;
 
             return new FirefoxDriver(options);
         }
@@ -77,6 +82,7 @@ namespace Bundler.QA.Frontend
             return this._driver.Title;
         }
 
+
         public IWebElement? Find(By search)
         {
             IWebElement? element = null;
@@ -95,6 +101,25 @@ namespace Bundler.QA.Frontend
             }
 
             return element;
+        }
+
+        public List<object> GetIndexedDBData(string name, string storeName)
+        {
+            var script = @"
+                const request = window.indexedDB.open(arguments[0]);
+                request.onsuccess = function(event) {
+                    const database = event.target.result;
+
+                    const transaction = database.transaction([arguments[1]], 'readonly');
+                    const store = transaction.objectStore(arguments[1]);
+
+                    store.getAll().onsuccess = function(event) {
+                        return event.target.result;
+                    };
+                };
+            ";
+            
+            return (List<object>)((IJavaScriptExecutor)_driver).ExecuteAsyncScript(script, name, storeName);
         }
 
         public IWebElement? WaitFor(By search, int seconds = 10)

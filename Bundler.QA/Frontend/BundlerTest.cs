@@ -180,5 +180,19 @@ namespace Bundler.QA.Frontend
         }
 
         #endregion
+
+        #region Caching
+
+        [TestCase]
+        public void TestBundlerCachingSuccess()
+        {
+            this._page.UploadFile("bundle-Main.zip");
+            this._page.AssertSuccessToast("Success.");
+
+            var stores = this._page.GetIndexedDBData("bundler", "binaryCache");
+            Console.WriteLine(stores.Count);
+        }
+
+        #endregion
     }
 }

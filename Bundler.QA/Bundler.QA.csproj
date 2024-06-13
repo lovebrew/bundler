@@ -28,15 +28,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\bundler.Server\Bundler.Server.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Using Include="NUnit.Framework" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="Resources\bundle-macOS.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\bundle-Main.zip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Resources\empty">

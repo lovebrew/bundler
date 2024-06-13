@@ -243,8 +243,9 @@ export default class Bundler {
     const bundle: JSZip = new JSZip();
 
     let target: BundleType;
+
     for (target in assets) {
-      if (assets[target] === undefined) continue;
+      if (assets[target] === undefined || binaries[target] === undefined) continue;
 
       const binary = binaries[target] as Blob;
       const game = assets[target] as Blob;
@@ -258,7 +259,9 @@ export default class Bundler {
       bundle.file(file.name, file);
     }
 
-    if (this.log && this.log.size > 0) bundle.file("compile.log", this.log);
+    if (this.log !== undefined && this.log.size > 0) {
+        bundle.file("compile.log", this.log);
+    }
 
     const convertedLog = MediaConverter.getConversionLog();
     if (convertedLog !== undefined && convertedLog.size > 0) {

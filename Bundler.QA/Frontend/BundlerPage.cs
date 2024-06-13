@@ -1,6 +1,7 @@
 ﻿using OpenQA.Selenium;
 
 using Bundler.QA.Common;
+using OpenQA.Selenium.DevTools.V123.IndexedDB;
 
 namespace Bundler.QA.Frontend
 {
@@ -45,6 +46,11 @@ namespace Bundler.QA.Frontend
             this._webdriver.Find(FileInput)?.SendKeys(file);
         }
 
+        public List<object> GetIndexedDBData(string dbName, string storeName)
+        {
+            return this._webdriver.GetIndexedDBData(dbName, storeName);
+        }
+
         public void AssertSuccessToast(string message)
         {
             var toast = this._webdriver.WaitFor(SuccessToast);
@@ -54,7 +60,7 @@ namespace Bundler.QA.Frontend
 
             Console.WriteLine("File uploaded successfully.");
 
-            this._webdriver.WaitForInvisible(ErrorToast);
+            this._webdriver.WaitForInvisible(SuccessToast);
         }
 
         public void AssertErrorToast(string message)
