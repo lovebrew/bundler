@@ -62,7 +62,7 @@ namespace Bundler.Server.Controllers
             (info, extension) = console switch
             {
                 "ctr" => (query.Get3DSXCommand(directory, data.Binary, data.RomFS), "3dsx"),
-                "hac" => (query.GetNROCommand(directory, data.Binary, iconPath, data.RomFS), ".nacp"),
+                "hac" => (query.GetNROCommand(directory, data.Binary, iconPath, data.RomFS), "nro"),
                 "cafe" => (query.GetWUHBCommand(directory, iconPath, data.RomFS), "wuhb"),
                 _ => throw new NotImplementedException()
             };
