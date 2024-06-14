@@ -46,9 +46,9 @@ namespace Bundler.QA.Frontend
             this._webdriver.Find(FileInput)?.SendKeys(file);
         }
 
-        public List<object> GetIndexedDBData(string dbName, string storeName)
+        public T GetIndexedDBData<T>(string dbName, string storeName)
         {
-            return this._webdriver.GetIndexedDBData(dbName, storeName);
+            return this._webdriver.GetIndexedDBData<T>(dbName, storeName);
         }
 
         public void AssertSuccessToast(string message)

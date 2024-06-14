@@ -103,11 +103,11 @@ function App() {
 
         if (!MediaConverter.isValidFileType(file) && !isZipFile(file)) throw Error("Invalid file type.");
 
-        if (isZipFile(file)) return handleZipUpload(file);
+        if (isZipFile(file)) return await handleZipUpload(file);
       }
 
       if (MediaConverter.areFilesValid(files)) {
-        handleConversions(files);
+        await handleConversions(files);
       }
     } catch (exception) {
       toast.error(handleUploadError((exception as Error).message));

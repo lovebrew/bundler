@@ -103,24 +103,39 @@ namespace Bundler.QA.Frontend
             return element;
         }
 
-        public List<object> GetIndexedDBData(string name, string storeName)
+        public T GetIndexedDBData<T>(string name, string storeName)
         {
             var script = @"
                 const request = window.indexedDB.open(arguments[0]);
-                request.onsuccess = function(event) {
-                    const database = event.target.result;
+                const storeName = arguments[1];
 
-                    const transaction = database.transaction([arguments[1]], 'readonly');
-                    const store = transaction.objectStore(arguments[1]);
+                const promised = new Promise((resolve, reject) => {
+                    request.onsuccess = function(event) {
+                        const database = event.target.result;
 
-                    store.getAll().onsuccess = function(event) {
-                        return event.target.result;
+                        const transaction = database.transaction([storeName], 'readonly');
+                        const store = transaction.objectStore(storeName);
+                        const allItems = store.getAll();
+
+                        allItems.onsuccess = function(event) {
+                            console.log(event.target.result);
+                            resolve(event.target.result);
+                        };
                     };
-                };
+
+                    request.onerror = function(event) {
+                        console.log(event.target.result);
+                        reject(event.target.error);
+                    };
+                });
+                
+                return promised.then((value) => { return value });
             ";
-            
-            return (List<object>)((IJavaScriptExecutor)_driver).ExecuteAsyncScript(script, name, storeName);
+
+            var executor = (IJavaScriptExecutor)this._driver;
+            return (T)executor.ExecuteScript(script, name, storeName);
         }
+
 
         public IWebElement? WaitFor(By search, int seconds = 10)
         {

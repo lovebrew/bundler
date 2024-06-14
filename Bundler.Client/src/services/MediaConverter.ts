@@ -152,7 +152,7 @@ export default class MediaConverter {
   public static areFilesValid(files: Array<File>): boolean {
     if (files.length === 0) false;
 
-    return files.every((file) => MediaConverter.isValidFileType(file));
+    return files.every((file) => file.size > 0 && MediaConverter.isValidFileType(file));
   }
 
   protected isMediaFile(file: unknown): file is MediaFile {

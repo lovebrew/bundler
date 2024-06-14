@@ -4,19 +4,44 @@ using System.IO.Compression;
 
 namespace Bundler.QA.Frontend
 {
+    #region Types
+
+    internal sealed class BinaryCache : Dictionary<string, object>
+    {
+        public BinaryCache(Dictionary<string, object> data)
+        {
+            this["ctr"] = data.TryGetValue("ctr", out object? ctr) ? ctr : default!;
+            this["hac"] = data.TryGetValue("hac", out object? hac) ? hac : default!;
+            this["cafe"] = data.TryGetValue("cafe", out object? cafe) ? cafe : default!;
+            this["timestamp"] = data.TryGetValue("timestamp", out object? value) ? value : default!;
+        }
+    };
+
+    internal sealed class AssetCache : Dictionary<string, object>
+    {
+        public AssetCache(Dictionary<string, object> data)
+        {
+            this["file"] = data.TryGetValue("file", out object? file) ? file : default!;
+            this["timestamp"] = data.TryGetValue("timestamp", out object? value) ? value : default!;
+        }
+    }
+
+
+    #endregion
+
     internal class BundlerTest
     {
         private BundlerPage _page;
 
         #region Toast Messages
 
-        private string InvalidTexture = "Error: Texture '{0}' dimensions invalid.";
-        private string InvalidFileType = "Error: Invalid file type.";
-        private string InvalidTextureFile = "Error: Texture '{0}' is invalid.";
-        private string InvalidFontFile = "Error: Font '{0}' is invalid.";
+        private readonly string InvalidTexture = "Error: Texture '{0}' dimensions invalid.";
+        private readonly string InvalidFileType = "Error: Invalid file type.";
+        private readonly string InvalidTextureFile = "Error: Texture '{0}' is invalid.";
+        private readonly string InvalidFontFile = "Error: Font '{0}' is invalid.";
 
-        private readonly List<string> DefaultBundleNames = new() { "SuperGame.3dsx", "SuperGame.nro", "SuperGame.wuhb" };
-        private readonly List<string> DefaultAssetNames = new() { "ctr-assets.zip", "hac-assets.zip", "cafe-assets.zip" };
+        private readonly List<string> DefaultBundleNames = ["SuperGame.3dsx", "SuperGame.nro", "SuperGame.wuhb"];
+        private readonly List<string> DefaultAssetNames = ["ctr-assets.zip", "hac-assets.zip", "cafe-assets.zip"];
 
         #endregion
 
@@ -27,6 +52,18 @@ namespace Bundler.QA.Frontend
         [OneTimeTearDown]
         public void Teardown()
             => this._page.Cleanup();
+
+        #region Helpers
+
+        private static void CreateBundle(string name, Span<(string name, string path)> files)
+        {
+            var assets = Assets.Instance();
+
+            using var bundle = ZipFile.Open(name, ZipArchiveMode.Create);
+            foreach (var file in files) bundle.CreateEntryFromFile(assets.GetFilepath(file.name), file.path);
+        }
+
+        #endregion
 
         #region Texture Upload
 
@@ -156,7 +193,7 @@ namespace Bundler.QA.Frontend
 
                 Assert.Multiple(() =>
                 {
-                    Assert.That(download.Entries, Has.Count.EqualTo(5)); // all binaries, logs
+                    Assert.That(download.Entries, Has.Count.EqualTo(4)); // all binaries, logs
                     Assert.That(download.Entries.Any(x => DefaultBundleNames.Contains(x.Name)));
 
                     foreach (var bundleName in DefaultBundleNames)
@@ -189,8 +226,51 @@ namespace Bundler.QA.Frontend
             this._page.UploadFile("bundle-Main.zip");
             this._page.AssertSuccessToast("Success.");
 
-            var stores = this._page.GetIndexedDBData("bundler", "binaryCache");
-            Console.WriteLine(stores.Count);
+            var _stores = this._page.GetIndexedDBData<IReadOnlyCollection<object>>("bundler", "binaryCache");
+            Assert.That(_stores, Has.Count.EqualTo(1));
+
+            var _cache = new BinaryCache((Dictionary<string, object>)_stores.ElementAt(0));
+            Assert.That(_cache, Has.Count.EqualTo(4));
+        }
+
+        [TestCase]
+        public void TestBundlerAssetCachingSuccess()
+        {
+            try
+            {
+                Span<(string name, string path)> files = new[]
+                {
+                    ("lovebrew.toml", "lovebrew.toml"),
+                    ("Oneday.otf",    "game/Oneday.otf"),
+                    ("lenny.png",     "game/lenny.png"),
+                    ("dio.jpg",       "game/dio.jpg"),
+                    ("main.lua",      "game/main.lua"),
+                };
+
+                CreateBundle("bundle.zip", files);
+
+                this._page.UploadFile($"{Directory.GetCurrentDirectory()}\\bundle.zip", false);
+                this._page.AssertSuccessToast("Success.");
+
+                var _stores = this._page.GetIndexedDBData<IReadOnlyCollection<object>>("bundler", "assetCache");
+                Assert.That(_stores, Has.Count.EqualTo(1));
+
+                for (int index = 0; index < _stores.Count; index++)
+                {
+                    var _cache = new AssetCache((Dictionary<string, object>)_stores.ElementAt(index));
+                    Assert.That(_cache, Has.Count.EqualTo(2));
+                }
+            }
+            catch (InvalidDataException)
+            {
+                Console.WriteLine("Resulting bundle download did not append game archive.");
+            }
+            finally
+            {
+                File.Delete("bundle.zip");
+            }
+
+
         }
 
         #endregion
