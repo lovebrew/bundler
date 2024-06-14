@@ -14,6 +14,9 @@ namespace Bundler.QA.Frontend
             this["hac"] = data.TryGetValue("hac", out object? hac) ? hac : default!;
             this["cafe"] = data.TryGetValue("cafe", out object? cafe) ? cafe : default!;
             this["timestamp"] = data.TryGetValue("timestamp", out object? value) ? value : default!;
+
+            // make sure all key values are not null
+            if (this.Any(x => x.Value is null)) throw new ArgumentNullException();
         }
     };
 
@@ -23,13 +26,16 @@ namespace Bundler.QA.Frontend
         {
             this["file"] = data.TryGetValue("file", out object? file) ? file : default!;
             this["timestamp"] = data.TryGetValue("timestamp", out object? value) ? value : default!;
+
+            if (this.Any(x => x.Value is null)) throw new ArgumentNullException();
         }
     }
 
 
     #endregion
 
-    internal class BundlerTest
+    [NonParallelizable]
+    internal class BundlerTest : BaseTest
     {
         private BundlerPage _page;
 
@@ -53,18 +59,6 @@ namespace Bundler.QA.Frontend
         public void Teardown()
             => this._page.Cleanup();
 
-        #region Helpers
-
-        private static void CreateBundle(string name, Span<(string name, string path)> files)
-        {
-            var assets = Assets.Instance();
-
-            using var bundle = ZipFile.Open(name, ZipArchiveMode.Create);
-            foreach (var file in files) bundle.CreateEntryFromFile(assets.GetFilepath(file.name), file.path);
-        }
-
-        #endregion
-
         #region Texture Upload
 
         [TestCase("cat_big_width.png")]
@@ -73,7 +67,8 @@ namespace Bundler.QA.Frontend
         [TestCase("cat_big_width.jpg")]
         [TestCase("cat_big_height.jpg")]
         [TestCase("cat_big_both.jpg")]
-        public void TestUploadBigFileDimensions(string filename)
+        [Description("Test large texture files cannot upload (> 1024 pixels).")]
+        public void TestUploadBigTextureDimensions(string filename)
         {
             this._page.UploadFile(filename);
             this._page.AssertErrorToast(string.Format(this.InvalidTexture, filename));
@@ -82,7 +77,8 @@ namespace Bundler.QA.Frontend
         [TestCase("chika.gif")]
         [TestCase("rectangle.bmp")]
         [TestCase("rectangle.tga")]
-        public void TestUploadInvalidFile(string filename)
+        [Description("Test invalid texture types cannot upload.")]
+        public void TestUploadInvalidTexture(string filename)
         {
             this._page.UploadFile(filename);
             this._page.AssertErrorToast(this.InvalidFileType);
@@ -94,13 +90,15 @@ namespace Bundler.QA.Frontend
         [TestCase("small_both.jpg")]
         [TestCase("small_height.jpg")]
         [TestCase("small_width.jpg")]
-        public void TestUploadSmallFileDimensions(string filename)
+        [Description("Test small texture files cannot upload (< 3 pixels).")]
+        public void TestUploadSmallTextureDimensions(string filename)
         {
             this._page.UploadFile(filename);
             this._page.AssertErrorToast(string.Format(this.InvalidTexture, filename));
         }
 
         [TestCase("corrupt.png")]
+        [Description("Test 'corrupt' texture files cannot upload.")]
         public void TestUploadCorruptTextureFile(string filename)
         {
             this._page.UploadFile(filename);
@@ -109,6 +107,7 @@ namespace Bundler.QA.Frontend
 
         [TestCase("dio.jpg")]
         [TestCase("lenny.png")]
+        [Description("Test valid texture files (jpg, png) can upload (within size limits).")]
         public void TestUploadValidTextureFile(string filename)
         {
             this._page.UploadFile(filename);
@@ -130,6 +129,7 @@ namespace Bundler.QA.Frontend
         #region Font Upload
 
         [TestCase("corrupt.ttf")]
+        [Description("Test 'corrupt' font files cannot upload.")]
         public void TestUploadCorruptFontFile(string filename)
         {
             this._page.UploadFile(filename);
@@ -138,6 +138,7 @@ namespace Bundler.QA.Frontend
 
         [TestCase("Oneday.otf")]
         [TestCase("Perfect DOS VGA 437.ttf")]
+        [Description("Test valid font files (ttf, otf) can upload.")]
         public void TestUploadValidFontFile(string filename)
         {
             this._page.UploadFile(filename);
@@ -154,19 +155,26 @@ namespace Bundler.QA.Frontend
             });
         }
 
+        [TestCase("arial.fnt")]
+        [Description("Test invalid font files cannot upload.")]
+        public void TestUploadInvalidFontFile(string filename)
+        {
+            this._page.UploadFile(filename);
+            this._page.AssertErrorToast(string.Format(this.InvalidFileType));
+        }
+
         #endregion
 
         #region Bundle Upload
 
         [TestCase("bundle-macOS.zip")]
+        [Description("Test a bundle created on macOS.")]
         public void TestMacOSBundle(string filename)
         {
             this._page.UploadFile(filename);
-            this._page.AssertSuccessToast("Success.");
+            this._page.AssertSuccessToast("Downloaded.");
 
             using var zip = ZipFile.OpenRead(this._page.GetDownloadedFile());
-            foreach (var item in zip.Entries)
-                Console.WriteLine(item.Name);
 
             Assert.Multiple(() =>
             {
@@ -180,11 +188,13 @@ namespace Bundler.QA.Frontend
         {
             try
             {
-                using (var bundle = ZipFile.Open("bundle.zip", ZipArchiveMode.Create))
-                {
-                    bundle.CreateEntryFromFile(Assets.Instance().GetFilepath("main.lua"), "game/main.lua");
-                    bundle.CreateEntryFromFile(Assets.Instance().GetFilepath("lovebrew.toml"), "lovebrew.toml");
-                }
+                Span<(string, string)> files =
+                [
+                    ("main.lua",      "game/main.lua"),
+                    ("lovebrew.toml", "lovebrew.toml")
+                ];
+                
+                CreateBundle("bundle.zip", files);
 
                 this._page.UploadFile($"{Directory.GetCurrentDirectory()}\\bundle.zip", false);
                 this._page.AssertSuccessToast("Success.");
@@ -238,14 +248,14 @@ namespace Bundler.QA.Frontend
         {
             try
             {
-                Span<(string name, string path)> files = new[]
-                {
+                Span<(string, string)> files =
+                [
                     ("lovebrew.toml", "lovebrew.toml"),
                     ("Oneday.otf",    "game/Oneday.otf"),
                     ("lenny.png",     "game/lenny.png"),
                     ("dio.jpg",       "game/dio.jpg"),
                     ("main.lua",      "game/main.lua"),
-                };
+                ];
 
                 CreateBundle("bundle.zip", files);
 
@@ -253,7 +263,7 @@ namespace Bundler.QA.Frontend
                 this._page.AssertSuccessToast("Success.");
 
                 var _stores = this._page.GetIndexedDBData<IReadOnlyCollection<object>>("bundler", "assetCache");
-                Assert.That(_stores, Has.Count.EqualTo(1));
+                Assert.That(_stores, Has.Count.EqualTo(3));
 
                 for (int index = 0; index < _stores.Count; index++)
                 {
@@ -269,8 +279,6 @@ namespace Bundler.QA.Frontend
             {
                 File.Delete("bundle.zip");
             }
-
-
         }
 
         #endregion

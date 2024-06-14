@@ -42,7 +42,7 @@ namespace Bundler.QA.Frontend
         {
             Console.WriteLine($"Uploading {name}..");
 
-            var file = isAsset ? Assets.Instance().GetFilepath(name) : name;
+            var file = isAsset ? Assets.GetFilepath(name) : name;
             this._webdriver.Find(FileInput)?.SendKeys(file);
         }
 

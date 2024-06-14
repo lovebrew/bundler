@@ -141,7 +141,8 @@ export default class MediaConverter {
     const data = file instanceof File ? file : file.data;
 
     if (MediaConverter.isValidTextureType(file)) {
-      return await this.validateImage(filename, data);
+      const isValid = await MediaConverter.validateImage(filename, data);
+      if (!isValid) throw Error(`Texture '${filename}' dimensions invalid.`); else return true;
     } else if (MediaConverter.isValidFontType(file)) {
       return await this.validateFont(filename, data);
     }
@@ -227,8 +228,8 @@ export default class MediaConverter {
         mediaFiles.push(file);
       }
     }
-
-    if (response["log"] !== undefined) {
+      console.log(response);
+    if (response["log"]) {
       const content = new Blob([response["log"]], { type: "text/plain" });
       MediaConverter.log = new File([content], "convert.log");
     }

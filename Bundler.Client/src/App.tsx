@@ -87,6 +87,9 @@ function App() {
           zip.file(file.filepath, file.data);
         }
 
+        const log = MediaConverter.getConversionLog();
+        if (log && log.size > 0) zip.file("convert.log", log);
+
         zip
           .generateAsync({ type: "blob" })
           .then((blob: Blob) => downloadBlob(blob));
