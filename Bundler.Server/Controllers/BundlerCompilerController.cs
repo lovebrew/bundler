@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 using Bundler.Server.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace Bundler.Server.Controllers
 {
@@ -28,7 +29,7 @@ namespace Bundler.Server.Controllers
 
         private bool RunProcess(ProcessStartInfo info, string filename)
         {
-            using Process process = new Process { StartInfo = info };
+            using Process process = new() { StartInfo = info };
 
             if (!process.Start())
             {
@@ -56,7 +57,7 @@ namespace Bundler.Server.Controllers
                 "cafe" => (query.GetRPLCommand(directory, data.Binary), "rpx"),
                 _ => throw new NotImplementedException()
             };
-
+            
             if (!RunProcess(info, $"{path}.{extension}")) return string.Empty;
 
             (info, extension) = console switch
@@ -69,15 +70,28 @@ namespace Bundler.Server.Controllers
 
             if (!RunProcess(info, $"{path}.{extension}")) return string.Empty;
 
-            return GetBase64FromContent(Path.Combine(directory, $"{query.Title}.{extension}"));
+            return GetBase64FromContent(Path.Join(directory, $"{query.Title}.{extension}"));
+        }
+
+        private static bool ValidateIcon(string console, string mimeType)
+        {
+            return console switch
+            {
+                "ctr" or "cafe" => mimeType == "image/png",
+                "hac" => mimeType == "image/jpeg" || mimeType == "image/jpg",
+                _ => false
+            };
         }
 
         /// <summary>
         /// Compiles the specified targets
         /// </summary>
         [HttpPost]
-        public IActionResult Post([FromQuery] BundlerQuery query)
+        public IActionResult Post([FromQuery] BundlerQuery? query)
         {
+            if (query is null)
+                return BadRequest("No query specified");
+
             var files = this.HttpContext.Request.Form.Files;
 
             /* remove duplicate entries */
@@ -92,7 +106,7 @@ namespace Bundler.Server.Controllers
             if (!Directory.Exists(tempDirectory))
                 return StatusCode(StatusCodes.Status500InternalServerError);
 
-            Dictionary<string, string> fileData = new();
+            Dictionary<string, string> fileData = [];
             bool partial = false;
 
             foreach (var target in targets)
@@ -110,21 +124,33 @@ namespace Bundler.Server.Controllers
                 this._logger.LogInformation($"Creating {target} bundle for {query.Title}");
 
                 var iconPath = Path.GetFullPath(data.Icon);
+                var originalPath = iconPath;
 
                 /* save the custom icon, if it exists */
 
                 IFormFile? icon;
-                if ((icon = files.FirstOrDefault(x => x.Name == $"icon-{target}")) is not null)
+                if ((icon = files?.FirstOrDefault(x => x.Name == $"icon-{target}")) is not null)
                 {
                     iconPath = Path.Combine(directory, icon.FileName);
                     using var stream = new FileStream(iconPath, FileMode.Create);
                     icon.CopyTo(stream);
-                }
 
-                if (icon is null)
-                    this._logger.LogInformation($"Using default icon for {target}");
-                else
-                    this._logger.LogInformation($"Using custom icon for {target}");
+                    if (MimeTypes.TryGetMimeType(iconPath, out var mimeType))
+                    {
+                        if (!ValidateIcon(target, mimeType))
+                        {
+                            this._logger.LogWarning($"Invalid icon MIME type for {iconPath}. Using default.");
+                            iconPath = originalPath;
+                        }
+                        else
+                            this._logger.LogInformation($"Using custom icon for {target}");
+                    }
+                    else
+                    {
+                        this._logger.LogWarning($"Failed to get MIME type for {iconPath}. Using default icon.");
+                        iconPath = originalPath;
+                    }
+                }
 
                 var content = Compile(directory, target, query, iconPath);
 

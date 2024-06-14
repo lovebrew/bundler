@@ -39,6 +39,9 @@
     <None Update="Resources\bundle-macOS.zip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Resources\bundle-Main.zip">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Resources\empty">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

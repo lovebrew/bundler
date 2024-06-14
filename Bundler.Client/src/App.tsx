@@ -13,8 +13,20 @@ import errorSfx from "@assets/sound/error.ogg";
 import useSound from "use-sound";
 import JSZip from "jszip";
 
-import { MediaFile } from "./services/MediaConverter";
-import { isZipFile, convertFiles, isValidFile, isFontFile, isImageFile } from "./services/utilities";
+import { MediaFile } from "./services/types";
+import MediaConverter from "./services/MediaConverter";
+
+import mime from "mime";
+
+const ZipTypes = ["application/x-zip-compressed", "application/zip"];
+
+const isZipFile = (file: File) => {
+  const mimeType = mime.getType(file.name);
+
+  if (mimeType === null) return false;
+
+  return ZipTypes.includes(mimeType);
+}
 
 const downloadBlob = (blob: Blob) => {
   const link = document.createElement("a");
@@ -57,23 +69,26 @@ function App() {
   const handleZipUpload = async (archive: File) => {
     const bundler = new Bundler(archive);
 
-    toast.promise(bundler.prepareContent(), {
+    toast.promise(bundler.bundleContent(), {
       loading: "Uploading..",
       success: handleUploadSuccess,
       error: handleUploadError,
     });
   };
 
-  const handleConversions = async (files: File[]) => {
-    toast.promise(convertFiles(files), {
+  const handleConversions = async (files: Array<File>) => {
+    toast.promise(MediaConverter.instance.convert(files), {
       loading: "Uploading..",
-      success: (files: MediaFile[]) => {
+      success: (files: Array<MediaFile>) => {
         playSuccess();
         const zip = new JSZip();
 
         for (const file of files) {
           zip.file(file.filepath, file.data);
         }
+
+        const log = MediaConverter.getConversionLog();
+        if (log && log.size > 0) zip.file("convert.log", log);
 
         zip
           .generateAsync({ type: "blob" })
@@ -84,20 +99,19 @@ function App() {
     });
   };
 
-  const handleUpload = async (files: File[]) => {
+  const handleUpload = async (files: Array<File>) => {
     try {
       for (const file of files) {
         if (file.size === 0) throw Error("Invalid file.");
 
-        if (!isValidFile(file)) throw Error("Invalid file type.");
+        if (!MediaConverter.isValidFileType(file) && !isZipFile(file)) throw Error("Invalid file type.");
 
-        if (isZipFile(file)) handleZipUpload(file);
+        if (isZipFile(file)) return await handleZipUpload(file);
       }
 
-      if (files.length > 0 && files.every((file) => isFontFile(file) ||isImageFile(file))) {
-        handleConversions(files);
+      if (MediaConverter.areFilesValid(files)) {
+        await handleConversions(files);
       }
-
     } catch (exception) {
       toast.error(handleUploadError((exception as Error).message));
     }

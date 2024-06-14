@@ -1,45 +1,32 @@
-﻿using System.Linq;
+﻿using System.IO.Compression;
 
 namespace Bundler.QA.Common
 {
     public class Assets
     {
         private const string ResourcesPath = "Resources";
-        private static Assets? _instance = null;
 
-        private readonly Dictionary<string, byte[]> AssetData = new();
-        private readonly Dictionary<string, Dictionary<string, byte[]>> AssetCollections = new();
-
-        private Assets()
+        private static readonly Dictionary<string, byte[]> Data = [];
+        
+        static Assets()
         {
             foreach (var file in Directory.GetFiles(ResourcesPath, "*", SearchOption.AllDirectories))
             {
                 var (name, data) = (Path.GetFullPath(file), File.ReadAllBytes(file));
-                this.AssetData.Add(name, data);
+                Data.Add(name, data);
             }
-
-            this.AssetCollections.Add("BigImages", AssetData.Where(k => k.Key.Contains("cat_big")).ToDictionary(k => k.Key, v => v.Value));
         }
 
-        public static Assets Instance()
-            => _instance ??= new();
-
-        public string GetFilepath(string name)
+        public static string GetFilepath(string name)
         {
-            var filepath = this.AssetData.Keys.FirstOrDefault(k => k.Contains(name));
+            var filepath = Data.Keys.FirstOrDefault(k => k.Contains(name));
             return filepath is null ? throw new FileNotFoundException($"File not found: {name}") : filepath;
         }
 
-        public byte[] GetData(string name)
+        public static byte[] GetData(string name)
         {
-            return this.AssetData[name];
-        }
-
-        public List<string> GetCollection(string name)
-        {
-            var collection = this.AssetCollections.Keys.FirstOrDefault(k => k.Equals(name));
-            return collection is null ? throw new KeyNotFoundException($"Collection not found: {name}") : this.AssetCollections[collection].Keys.ToList();
+            var bytes = Data.FirstOrDefault(k => k.Key.Contains(name)).Value;
+            return bytes is null ? throw new FileNotFoundException($"File not found: {name}") : bytes;
         }
     }
-
 }

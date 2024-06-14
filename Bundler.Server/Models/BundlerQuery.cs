@@ -11,19 +11,34 @@ namespace Bundler.Server.Models
     {
         /// <value>Application Title</value>
         [FromQuery(Name = "title")]
-        public string Title { get; set; } = "SuperGame";
+        public string Title { get; set; } = default!;
         /// <value>Application Author</value>
         [FromQuery(Name = "author")]
-        public string Author { get; set; } = "SuperAuthor";
+        public string Author { get; set; } = default!;
         /// <value>Application Description</value>
         [FromQuery(Name = "description")]
-        public string Description { get; set; } = "SuperDescription";
+        public string Description { get; set; } = default!;
         /// <value>Application Version</value>
         [FromQuery(Name = "version")]
-        public string Version { get; set; } = "0.1.0";
+        public string Version { get; set; } = default!;
         /// <value>Application Targets</value>
         [FromQuery(Name = "targets")]
-        public string Targets { get; set; } = "ctr,hac,cafe";
+        public string Targets { get; set; } = default!;
+
+        /// <summary>
+        /// Translate the query to FormUrlEncodedContent
+        /// </summary>
+        /// <returns>FormUrlEncodedContent</returns>
+        public override string ToString()
+        {
+            var queryString = $"title={Uri.EscapeDataString(this.Title)}";
+            queryString += $"&author={Uri.EscapeDataString(this.Author)}";
+            queryString += $"&description={Uri.EscapeDataString(this.Description)}";
+            queryString += $"&version={Uri.EscapeDataString(this.Version)}";
+            queryString += $"&targets={Uri.EscapeDataString(this.Targets)}";
+
+            return queryString;
+        }
 
         /// <summary>
         /// Gets the SMDH command for 3DS compilation
@@ -34,14 +49,8 @@ namespace Bundler.Server.Models
         public ProcessStartInfo GetSMDHCommand(string directory, string iconPath) 
         {
             var output = Path.Join(directory, this.Title);
-            Console.WriteLine($"Creating SMDH for {output}");
 
             var description = $"{this.Description} - {this.Version}";
-            
-            Console.WriteLine($"Description: {description}");
-            Console.WriteLine($"Author: {this.Author}");
-            Console.WriteLine($"Icon: {iconPath}");
-
             var arguments = $"--create \"{this.Title}\" \"{description}\" \"{this.Author}\" \"{iconPath}\" \"{output}.smdh\"";
 
             return new ProcessStartInfo { FileName = "smdhtool", Arguments = arguments };
@@ -101,7 +110,7 @@ namespace Bundler.Server.Models
         {
 
             var output = Path.Join(directory, this.Title);
-            var arguments = $"\"{binaryPath}\" {output}.rpx";
+            var arguments = $"\"{binaryPath}\" \"{output}.rpx\"";
 
             return new ProcessStartInfo { FileName = "elf2rpl", Arguments = arguments };
         }

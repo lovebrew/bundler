@@ -1,11 +1,7 @@
 import JSZip, { JSZipObject } from "jszip";
 import Config, { ConfigMetadata, parseConfig } from "./Config";
 
-export type BundleIcons = {
-  ctr?: Blob;
-  cafe?: Blob;
-  hac?: Blob;
-};
+import { BundleIcons, BundleType } from "./types";
 
 /*
  ** Bundler class
@@ -103,6 +99,43 @@ export default class Bundle {
     return files;
   }
 
+  private async blobToBase64(blob: Blob): Promise<string> {
+    // const value = reader.result as string;
+    // const base64data = value[value.indexOf(", ") + 1];
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const res = reader.result;
+        if (typeof res === "string") {
+          console.log(res);
+          resolve(res);
+        } else {
+          reject(res);
+        }
+      };
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  public async getHashData(): Promise<string> {
+    if (this.config === undefined) {
+      throw Error("Configuration file not loaded.");
+    }
+
+    const icons = await this.findDefinedIcons();
+
+    let iconData = "";
+    let key: BundleType;
+
+    for (key in icons) {
+      if (icons[key] === undefined) continue;
+      iconData += await this.blobToBase64(icons[key] as Blob);
+    }
+
+    return this.config.source + iconData;
+  }
+
   public getMetadata(): ConfigMetadata {
     if (this.config === undefined) {
       throw Error("Configuration file not loaded.");
@@ -111,12 +144,12 @@ export default class Bundle {
     return this.config.metadata;
   }
 
-  public getTargets(): Array<string> {
+  public getTargets(): Array<BundleType> {
     if (this.config === undefined) {
       throw Error("Configuration file not loaded.");
     }
 
-    return this.config.build.targets;
+    return this.config.getTargets();
   }
 
   public isPackaged(): boolean {

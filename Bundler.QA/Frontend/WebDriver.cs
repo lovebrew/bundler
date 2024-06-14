@@ -5,6 +5,9 @@ using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
 using System.Diagnostics;
+using OpenQA.Selenium.DevTools;
+using OpenQA.Selenium.DevTools.V123.IndexedDB;
+using OpenQA.Selenium.DevTools.V123;
 
 namespace Bundler.QA.Frontend
 {
@@ -26,7 +29,7 @@ namespace Bundler.QA.Frontend
             this._driver = CreateWebDriver(type);
 
             this._driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-            this._driver.Url = "http://localhost:5000";
+            this._driver.Url = "http://localhost:5001";
         }
 
         public void Destroy()
@@ -57,6 +60,8 @@ namespace Bundler.QA.Frontend
             options.SetPreference("browser.download.folderList", 2);
             options.SetPreference("browser.download.manager.showWhenStarting", false);
             options.SetPreference("browser.download.dir", DownloadsPath);
+            options.SetPreference("user-data-dir", $"{Directory.GetCurrentDirectory()}\\firefox-profile");
+            options.EnableDevToolsProtocol = true;
 
             return new FirefoxDriver(options);
         }
@@ -77,6 +82,7 @@ namespace Bundler.QA.Frontend
             return this._driver.Title;
         }
 
+
         public IWebElement? Find(By search)
         {
             IWebElement? element = null;
@@ -96,6 +102,40 @@ namespace Bundler.QA.Frontend
 
             return element;
         }
+
+        public T GetIndexedDBData<T>(string name, string storeName)
+        {
+            var script = @"
+                const request = window.indexedDB.open(arguments[0]);
+                const storeName = arguments[1];
+
+                const promised = new Promise((resolve, reject) => {
+                    request.onsuccess = function(event) {
+                        const database = event.target.result;
+
+                        const transaction = database.transaction([storeName], 'readonly');
+                        const store = transaction.objectStore(storeName);
+                        const allItems = store.getAll();
+
+                        allItems.onsuccess = function(event) {
+                            console.log(event.target.result);
+                            resolve(event.target.result);
+                        };
+                    };
+
+                    request.onerror = function(event) {
+                        console.log(event.target.result);
+                        reject(event.target.error);
+                    };
+                });
+                
+                return promised.then((value) => { return value });
+            ";
+
+            var executor = (IJavaScriptExecutor)this._driver;
+            return (T)executor.ExecuteScript(script, name, storeName);
+        }
+
 
         public IWebElement? WaitFor(By search, int seconds = 10)
         {
