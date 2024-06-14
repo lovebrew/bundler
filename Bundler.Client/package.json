@@ -1,0 +1,50 @@
+{
+  "name": "lovebrew-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "supportedBrowsers": "(echo export default && browserslist-useragent-regexp --allowHigherVersions) > supportedBrowsers.js"
+  },
+  "dependencies": {
+    "debug": "^4.3.5",
+    "imurmurhash": "^0.1.4",
+    "jszip": "^3.10.1",
+    "localforage": "^1.10.0",
+    "mime": "^3.0.0",
+    "mime-types": "^2.1.35",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "toml": "^3.0.0",
+    "use-sound": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/imurmurhash": "^0.1.4",
+    "@types/mime": "^3.0.3",
+    "@types/node": "^20.8.9",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitejs/plugin-react-swc": "^3.3.2",
+    "autoprefixer": "^10.4.16",
+    "browserslist-useragent-regexp": "^4.1.0",
+    "eslint": "^8.45.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.3",
+    "postcss": "^8.4.30",
+    "tailwind-styled-components": "^2.2.0",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5",
+    "vite-tsconfig-paths": "^4.2.1"
+  },
+  "engines": {
+    "node": ">= 16.18.0"
+  }
+}

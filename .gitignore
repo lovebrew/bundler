@@ -1,12 +1,8 @@
-bin
-__pycache__
+bin/
+obj/
 .vscode
-.pytest_cache
 .vs
 build
-*.egg-info
-.venv
-secret.key
-reports/
 downloads/
 logs/
+*.elf
