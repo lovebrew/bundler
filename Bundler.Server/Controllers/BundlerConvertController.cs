@@ -22,15 +22,10 @@ namespace Bundler.Server.Controllers
         };
 
         private static readonly List<string> ImageMimeTypes = ["image/jpg", "image/jpeg", "image/png"];
-        private readonly ProcessStartInfo imageCommand = new() { FileName = "tex3ds", Arguments = "-f rgba8888 -z auto \"{0}\" -o \"{1}\"" };
         private const int MaxImageSize = 1024;
         private const int MinImageSize = 3;
 
         private static readonly List<string> FontMimeTypes = ["font/ttf", "font/otf"];
-        private readonly ProcessStartInfo fontCommand = new() { FileName = "mkbcfnt", Arguments = "\"{0}\" -o \"{1}\"" };
-
-        private static string TransformExtension(string filename, bool isFont)
-            => Path.ChangeExtension(filename, isFont ? ".bcfnt" : ".t3x");
 
         private static string GetBase64FromContent(string filepath)
             => Convert.ToBase64String(System.IO.File.ReadAllBytes(filepath));
@@ -45,42 +40,52 @@ namespace Bundler.Server.Controllers
             this._logger = new();
         }
 
+        private bool IsValidTexture(string filename)
+        {
+            using var image = Image.Load(filename);
+
+            if (image != null)
+            {
+                if (image.Width > MaxImageSize || image.Height > MaxImageSize)
+                {
+                    var side = image.Width > image.Height ? "width" : "height";
+                    var size = Math.Max(image.Width, image.Height);
+
+                    this._logger.LogError($"Image '{filename}' {side} is too large ({size} pixels > 1024 pixels)");
+                    return false;
+                }
+
+                if (image.Width < MinImageSize || image.Height < MinImageSize)
+                {
+                    var side = image.Width < image.Height ? "width" : "height";
+                    var size = Math.Min(image.Width, image.Height);
+
+                    this._logger.LogError($"Image '{filename}' {side} is too small ({size} pixels < 5 pixels)");
+                    return false;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsValidFont(string filepath)
+        {
+            using var file = System.IO.File.OpenRead(filepath);
+            return FontDescription.LoadDescription(file) != null;
+        }
+
         private bool IsValidMediaFile(string filepath, bool isFont)
         {
             var filename = Path.GetFileName(filepath);
 
             try
             {
-                if (isFont)
-                {
-                    using var file = System.IO.File.OpenRead(filepath);
-                    return FontDescription.LoadDescription(file) != null;
-                }
-
-                using var image = Image.Load(filepath);
-
-                if (image != null)
-                {
-                    if (image.Width > MaxImageSize || image.Height > MaxImageSize)
-                    {
-                        var side = image.Width > image.Height ? "width" : "height";
-                        var size = Math.Max(image.Width, image.Height);
-
-                        this._logger.LogError($"Image '{filename}' {side} is too large ({size} pixels > 1024 pixels)");
-                        return false;
-                    }
-
-                    if (image.Width < MinImageSize || image.Height < MinImageSize)
-                    {
-                        var side = image.Width < image.Height ? "width" : "height";
-                        var size = Math.Min(image.Width, image.Height);
-
-                        this._logger.LogError($"Image '{filename}' {side} is too small ({size} pixels < 5 pixels)");
-                        return false;
-                    }
-
-                    return true;
-                }
+                if (isFont) 
+                    return IsValidFont(filepath); 
+                
+                return IsValidTexture(filepath);
             }
             catch (Exception e)
             {
@@ -88,6 +93,68 @@ namespace Bundler.Server.Controllers
             }
 
             return false;
+        }
+
+        private static string GetConvertedFilename(string source, bool isFont)
+        {
+            if (isFont)
+                return Path.ChangeExtension(source, "bcfnt");
+
+            return Path.ChangeExtension(source, "t3x");
+        }
+
+        private static ProcessStartInfo CreateConvertCommand(string source, bool isFont)
+        {
+            string destination = GetConvertedFilename(source, isFont);
+
+            if (isFont)
+                return new ProcessStartInfo("mkbcfnt", $"\"{source}\" -o \"{destination}\"");
+
+            return new ProcessStartInfo("tex3ds", $"-f rgba8888 -z auto \"{source}\" -o \"{destination}\"");
+        }
+
+        private (string, string) ConvertMediaFile(string directory, IFormFile file, bool isFont)
+        {            
+            var sourcePath = Path.Join(directory, file.FileName);
+
+            if (!Path.Exists(sourcePath))
+                Directory.CreateDirectory(Path.GetDirectoryName(sourcePath)!);
+
+            /* save the source file to a temporary location */
+            {
+                using var stream = new FileStream(sourcePath, FileMode.Create);
+                file.CopyTo(stream);
+                stream.Close();
+            }
+
+            if (!IsValidMediaFile(sourcePath, isFont))
+                return (string.Empty, string.Empty);
+
+            var info = CreateConvertCommand(sourcePath, isFont);
+
+            var convertedFilename = GetConvertedFilename(file.FileName, isFont);
+            var convertedPath = Path.Join(directory, convertedFilename);
+
+            this._logger.LogInformation($"Converting {file.FileName} to {convertedFilename}..");
+
+            using var process = new Process { StartInfo = info };
+
+            if (!process.Start())
+            {
+                this._logger.LogError($"Failed to start process {info.FileName}");
+                return (string.Empty, string.Empty);
+            }
+            
+            process.WaitForExit();
+
+            if (!Path.Exists(convertedPath))
+            {
+                this._logger.LogError($"Failed to convert {file.FileName} to {convertedFilename}");
+                return (string.Empty, string.Empty);
+            }
+
+            this._logger.LogInformation($"Converted {file.FileName} to {convertedFilename} successfully.");
+            return (convertedFilename, GetBase64FromContent(convertedPath));
         }
 
         /// <summary>
@@ -123,47 +190,16 @@ namespace Bundler.Server.Controllers
                 if (!ImageMimeTypes.Contains(mimeType) && !FontMimeTypes.Contains(mimeType))
                     return StatusCode(StatusCodes.Status415UnsupportedMediaType);
 
-                /* save the file to a temporary location */
-                var tempName = Path.Join(tempDirectory, name);
-                using var stream = new FileStream(tempName, FileMode.Create);
-                file.CopyTo(stream);
-                stream.Close();
-
                 bool isFont = FontMimeTypes.Contains(mimeType);
+                (string filename, string data) = ConvertMediaFile(tempDirectory, file, isFont);
 
-                if (!IsValidMediaFile(tempName, isFont))
+                if (filename == string.Empty || data == string.Empty)
                 {
                     partial = true;
                     continue;
                 }
 
-                var command = isFont ? fontCommand : imageCommand;
-
-                /* make the destination name */
-                var convertedName = TransformExtension(name, isFont);
-                var tempConvertedName = Path.Join(tempDirectory, convertedName);
-
-                command.Arguments = string.Format(command.Arguments, tempName, tempConvertedName);
-                this._logger.LogInformation($"Converting {name} to {convertedName}..");
-
-                using var process = new Process { StartInfo = command };
-                {
-                    if (!process.Start())
-                        this._logger.LogError($"Failed to start process {command.FileName}");
-                    else
-                        process.WaitForExit();
-                }
-
-                if (process.ExitCode != 0)
-                {
-                    partial = true;
-                    this._logger.LogError($"Error converting {name} to {convertedName}");
-                }
-                else
-                {
-                    this._logger.LogInformation($"Converted {name} to {convertedName} successfully.");
-                    fileData.Add(convertedName, GetBase64FromContent(tempConvertedName));
-                }
+                fileData.Add(filename, data);
             }
 
             fileData.Add("log", this._logger.GetLogs());
