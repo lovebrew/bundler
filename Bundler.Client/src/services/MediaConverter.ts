@@ -228,7 +228,7 @@ export default class MediaConverter {
         mediaFiles.push(file);
       }
     }
-      console.log(response);
+
     if (response["log"]) {
       const content = new Blob([response["log"]], { type: "text/plain" });
       MediaConverter.log = new File([content], "convert.log");
