@@ -9,6 +9,7 @@ namespace Bundler.QA.Frontend
     internal class BundlerPage
     {
         private readonly WebDriver _webdriver;
+        private static string CurrentDirectory => Directory.GetCurrentDirectory();
 
         #region Strings
 
@@ -40,10 +41,8 @@ namespace Bundler.QA.Frontend
 
         public void UploadFile(string name, bool isAsset = true)
         {
-            Console.WriteLine($"Uploading {name}..");
-
-            var file = isAsset ? Assets.GetFilepath(name) : name;
-            this._webdriver.Find(FileInput)?.SendKeys(file);
+            var filepath = (isAsset) ? Assets.GetFilepath(name) : Path.Join(CurrentDirectory, name);
+            this._webdriver.Find(FileInput)?.SendKeys(filepath);
         }
 
         public T GetIndexedDBData<T>(string dbName, string storeName)

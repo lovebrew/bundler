@@ -5,9 +5,6 @@ using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
 using System.Diagnostics;
-using OpenQA.Selenium.DevTools;
-using OpenQA.Selenium.DevTools.V123.IndexedDB;
-using OpenQA.Selenium.DevTools.V123;
 
 namespace Bundler.QA.Frontend
 {
@@ -47,6 +44,8 @@ namespace Bundler.QA.Frontend
 
                 processes = Process.GetProcessesByName("msedgedriver");
                 foreach (var process in processes) process.Kill();
+
+                Directory.Delete(DownloadsPath, true);
             }
             catch (Exception e)
             {

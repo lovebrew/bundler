@@ -1,5 +1,5 @@
 import Bundle from "./Bundle";
-import { ConfigMetadata } from "./Config";
+import { Metadata } from "./Config";
 import {
   BundleIcons,
   BundleCache,
@@ -8,6 +8,7 @@ import {
   getExtension,
   BundleAssetCache,
   MediaFile,
+  getIconExtension,
 } from "./types";
 
 import MediaConverter from "./MediaConverter";
@@ -283,13 +284,18 @@ export default class Bundler {
   private async sendCompile(
     targets: Array<BundleType>,
     icons: BundleIcons,
-    metadata: ConfigMetadata
+    metadata: Metadata
   ): Promise<BundleCache> {
     // append the icons as FormData
     const body = new FormData();
-    for (const [target, blob] of Object.entries(icons)) {
+    let key: BundleType;
+
+    for (key in icons) {
+      const blob = icons[key];
       if (blob === undefined) continue;
-      body.append(`icon-${target}`, blob as Blob);
+
+      const basename = `icon-${key}`;
+      body.append(basename, blob, `${basename}.${getIconExtension(key)}`);
     }
 
     const url = `${import.meta.env.DEV ? process.env.BASE_URL : ""}`;

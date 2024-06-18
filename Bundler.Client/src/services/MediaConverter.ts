@@ -196,7 +196,7 @@ export default class MediaConverter {
 
     for (const file of fileMap) {
       if (!(await MediaConverter.validateFile(file))) {
-        throw Error(`Invalid file: ${file.filepath}`);
+        throw Error(`Invalid file: ${file.filepath}.`);
       }
       body.append(file.filepath, file.data);
     }

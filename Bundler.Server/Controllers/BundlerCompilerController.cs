@@ -2,8 +2,9 @@ using System.Diagnostics;
 
 using Microsoft.AspNetCore.Mvc;
 
+using SixLabors.ImageSharp;
+
 using Bundler.Server.Models;
-using System.ComponentModel.DataAnnotations;
 
 namespace Bundler.Server.Controllers
 {
@@ -15,6 +16,7 @@ namespace Bundler.Server.Controllers
     public partial class BundlerCompileController : ControllerBase
     {
         private readonly Logger _logger;
+        private readonly Dictionary<string, ushort> ConsoleIconDimensions = new() { {"ctr", 48 }, { "hac", 256 }, { "cafe", 128 }};
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BundlerCompileController"/> class.
@@ -75,12 +77,47 @@ namespace Bundler.Server.Controllers
 
         private static bool ValidateIcon(string console, string mimeType)
         {
+            Console.WriteLine($"Validating icon: {console} ({mimeType})");
             return console switch
             {
                 "ctr" or "cafe" => mimeType == "image/png",
                 "hac" => mimeType == "image/jpeg" || mimeType == "image/jpg",
                 _ => false
             };
+        }
+
+        private (int, string) CheckIcon(string path, string target)
+        {
+            try
+            {
+                if (MimeTypes.TryGetMimeType(path, out var mimeType))
+                {
+                    using var image = Image.Load(path);
+
+                    var dimensions = ConsoleIconDimensions[target];
+                    int[] imageDimensions = [image.Width, image.Height];
+
+                    if (!imageDimensions.All((dimension) => dimension == dimensions))
+                        return (StatusCodes.Status422UnprocessableEntity, $"Invalid icon dimensions for {target}.");
+
+                    if (!ValidateIcon(target, mimeType))
+                        return (StatusCodes.Status422UnprocessableEntity, $"Invalid icon mimetype for {target}.");
+                    else
+                        this._logger.LogInformation($"Using custom icon for {target}");
+                }
+                else
+                    return (StatusCodes.Status422UnprocessableEntity, $"Icon for {target} has no mimetype.");
+            }
+            catch (Exception exception)
+            {
+                var message = $"An error occurred while processing the icon for {target}.";
+                if (exception is ImageFormatException)
+                    message = $"Invalid icon format for {target}.";
+                
+                return (StatusCodes.Status422UnprocessableEntity, message);
+            }
+
+            return (StatusCodes.Status200OK, string.Empty);
         }
 
         /// <summary>
@@ -128,28 +165,20 @@ namespace Bundler.Server.Controllers
 
                 /* save the custom icon, if it exists */
 
-                IFormFile? icon;
-                if ((icon = files?.FirstOrDefault(x => x.Name == $"icon-{target}")) is not null)
-                {
-                    iconPath = Path.Combine(directory, icon.FileName);
-                    using var stream = new FileStream(iconPath, FileMode.Create);
+                IFormFile? icon = files.FirstOrDefault((x) => x.Name == $"icon-{target}");
+                
+                if (icon is not null)
+                {                
+                    var customIconPath = Path.Join(directory, icon.FileName);
+                    using var stream = new FileStream(customIconPath, FileMode.Create);
                     icon.CopyTo(stream);
+                    stream.Dispose();
 
-                    if (MimeTypes.TryGetMimeType(iconPath, out var mimeType))
-                    {
-                        if (!ValidateIcon(target, mimeType))
-                        {
-                            this._logger.LogWarning($"Invalid icon MIME type for {iconPath}. Using default.");
-                            iconPath = originalPath;
-                        }
-                        else
-                            this._logger.LogInformation($"Using custom icon for {target}");
-                    }
+                    var (statusCode, message) = CheckIcon(customIconPath, target);
+                    if (statusCode != StatusCodes.Status200OK) 
+                        return StatusCode(statusCode, message);
                     else
-                    {
-                        this._logger.LogWarning($"Failed to get MIME type for {iconPath}. Using default icon.");
-                        iconPath = originalPath;
-                    }
+                        iconPath = customIconPath;
                 }
 
                 var content = Compile(directory, target, query, iconPath);

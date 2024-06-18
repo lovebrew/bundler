@@ -8,6 +8,8 @@ using Bundler.Server.Models;
 
 namespace Bundler.QA.Backend
 {
+    using BundlerResponse = Dictionary<string, string>;
+
     [NonParallelizable]
     internal class BundlerAPITest : BaseTest
     {
@@ -29,24 +31,6 @@ namespace Bundler.QA.Backend
                 ".otf" or ".ttf" => Path.ChangeExtension(filename, ".bcfnt"),
                 _ => filename
             };
-        }
-
-        private static void ValidateZipArchive(string console, string base64, string[] filenames)
-        {
-            Console.WriteLine($"Validating {console} archive...");
-
-            if (console == "ctr") // change extensions based on file extension (png, jpg, ttf)
-                filenames = Array.ConvertAll(filenames, f => ChangeExtension(f));
-
-            var bytes = Convert.FromBase64String(base64);
-            using var stream = new MemoryStream(bytes);
-
-            using var zip = new ZipArchive(stream);
-
-            Assert.That(zip.Entries, Has.Count.EqualTo(filenames.Length));
-
-            foreach (var filename in filenames)
-                Assert.That(zip.Entries, Has.One.Matches<ZipArchiveEntry>(e => e.Name == filename));
         }
 
         #region Textures
@@ -235,6 +219,147 @@ namespace Bundler.QA.Backend
             var response = await this._client.PostAsync($"compile?{query}", new MultipartFormDataContent());
 
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        }
+
+        [TestCase("ctr",  "lenny.png")]
+        [TestCase("hac",  "dio.jpg")]
+        [TestCase("cafe", "cat_big_both.png")]
+        public async Task TestUploadBundleWithCustomIconBadDimensions(string target, string filename)
+        {
+            BundlerQuery query = new()
+            {
+                Title = "SuperGame",
+                Description = "SuperDescription",
+                Author = "SuperAuthor",
+                Version = "0.1.0",
+                Targets = target
+            };
+
+            var content = new MultipartFormDataContent();
+
+            var fileBytes = new ByteArrayContent(Assets.GetData(filename));
+            content.Add(fileBytes, $"icon-{target}", filename);
+
+            var response = await this._client.PostAsync($"compile?{query}", content);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.UnprocessableEntity));
+
+            var info = await response.Content.ReadAsStringAsync();
+            Assert.That(info, Is.EqualTo($"Invalid icon dimensions for {target}."));
+        }
+
+        [TestCase("ctr")]
+        [TestCase("hac")]
+        [TestCase("cafe")]
+        [Description("Validate that uploading a bundle with a bad icon mimetype throws an error.")]
+        public async Task TestUploadBundleWithCustomIconBadMimetype(string target)
+        {
+            string filename = "empty";
+
+            BundlerQuery query = new()
+            {
+                Title = "SuperGame",
+                Description = "SuperDescription",
+                Author = "SuperAuthor",
+                Version = "0.1.0",
+                Targets = target
+            };
+
+            var content = new MultipartFormDataContent();
+
+            var fileBytes = new ByteArrayContent(Assets.GetData(filename));
+            content.Add(fileBytes, $"icon-{target}", filename);
+
+            var response = await this._client.PostAsync($"compile?{query}", content);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.UnprocessableEntity));
+
+            var info = await response.Content.ReadAsStringAsync();
+            Assert.That(info, Is.EqualTo($"Icon for {target} has no mimetype."));
+        }
+
+        [TestCase("ctr",  "corrupt.png")]
+        [TestCase("hac",  "corrupt.jpg")]
+        [TestCase("cafe", "corrupt.png")]
+        [Description("Validate that uploading a bundle with a valid icon mimetype but invalid data throws an error.")]
+        public async Task TestUploadBundleWithCustomIconInvalidImage(string target, string filename)
+        {
+            BundlerQuery query = new()
+            {
+                Title = "SuperGame",
+                Description = "SuperDescription",
+                Author = "SuperAuthor",
+                Version = "0.1.0",
+                Targets = target
+            };
+
+            var content = new MultipartFormDataContent();
+
+            var fileBytes = new ByteArrayContent(Assets.GetData(filename));
+            content.Add(fileBytes, $"icon-{target}", filename);
+
+            var response = await this._client.PostAsync($"compile?{query}", content);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.UnprocessableEntity));
+
+            var info = await response.Content.ReadAsStringAsync();
+            Assert.That(info, Is.EqualTo($"Invalid icon format for {target}."));
+        }
+
+        [TestCase("ctr")]
+        [TestCase("hac")]
+        [TestCase("cafe")]
+        [Description("Validate that uploading a bundle with a bad icon mimetype throws an error.")]
+        public async Task TestUploadBundleWithCustomIconIncorrectMimetype(string target)
+        {
+            string filename = "yeetus.txt";
+
+            BundlerQuery query = new()
+            {
+                Title = "SuperGame",
+                Description = "SuperDescription",
+                Author = "SuperAuthor",
+                Version = "0.1.0",
+                Targets = target
+            };
+
+            var content = new MultipartFormDataContent();
+
+            var fileBytes = new ByteArrayContent(Assets.GetData(filename));
+            content.Add(fileBytes, $"icon-{target}", filename);
+
+            var response = await this._client.PostAsync($"compile?{query}", content);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.UnprocessableEntity));
+
+            var info = await response.Content.ReadAsStringAsync();
+            Assert.That(info, Is.EqualTo($"Invalid icon format for {target}."));
+        }
+
+        [TestCase("ctr", "icon-ctr.png")]
+        [TestCase("hac", "icon-hac.jpg")]
+        public async Task TestUploadBundleWithCustomIcon(string target, string filename)
+        {
+            BundlerQuery query = new()
+            {
+                Title = "SuperGame",
+                Description = "SuperDescription",
+                Author = "SuperAuthor",
+                Version = "0.1.0",
+                Targets = target
+            };
+
+            var content = new MultipartFormDataContent();
+
+            var fileBytes = new ByteArrayContent(Assets.GetData(filename));
+            content.Add(fileBytes, $"icon-{target}", filename);
+
+            var response = await this._client.PostAsync($"compile?{query}", content);
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+            var json = JsonConvert.DeserializeObject<BundlerResponse>(await response.Content.ReadAsStringAsync());
+            Assert.That(json, Is.Not.Null);
+
+            var bytes = Convert.FromBase64String(json[target]);
+
+            var expected = target == "ctr" ? Assets.GetData("icon_big.bin") : Assets.GetData(filename);
+            Assert.That(bytes.Intersect(expected), Is.Not.Empty);
         }
 
         #endregion
