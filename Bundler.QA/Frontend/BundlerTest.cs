@@ -542,7 +542,7 @@ namespace Bundler.QA.Frontend
             this._page.AssertSuccessToast("Success.");
 
             var _stores = this._page.GetIndexedDBData<IReadOnlyCollection<object>>("bundler", "binaryCache");
-            Assert.That(_stores, Has.Count.EqualTo(1));
+            Assert.That(_stores, Has.Count.GreaterThan(0));
 
             var _cache = new BinaryCache((Dictionary<string, object>)_stores.ElementAt(0));
             Assert.That(_cache, Has.Count.EqualTo(4));

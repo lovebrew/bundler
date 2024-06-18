@@ -33,6 +33,34 @@ namespace Bundler.QA.Backend
             };
         }
 
+        [TestCase]
+        [Description("Validate the info endpoint returns the expected response.")]
+        public async Task TestInfoEndpoint()
+        {
+            var response = await this._client.GetAsync("info");
+            var info = JsonConvert.DeserializeObject<BundlerInfo>(await response.Content.ReadAsStringAsync());
+
+            Assert.Multiple(() => {
+                Assert.That(info, Is.Not.Null);
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+                Assert.That(info.Deployed, Is.Not.Null);
+                Assert.That(DateTime.TryParse(info.Deployed, out _), Is.True);
+
+                Assert.That(info.ServerTime, Is.Not.Null);
+                Assert.That(DateTime.TryParse(info.ServerTime, out _), Is.True);
+
+                Assert.That(info.LastModified, Is.Not.Null);
+                Assert.That(info.LastModified, Is.All.Matches<KeyValuePair<string, string>>(x => DateTime.TryParse(x.Value, out _)));
+
+                Assert.That(info.Uptime, Is.Not.Null);
+                Assert.That(DateTime.TryParse(info.Uptime, out _), Is.True);
+
+                Assert.That(info.Version, Is.Not.Null);
+                Assert.That(info.Version, Is.EqualTo("0.11.0"));
+            });
+        }
+
         #region Textures
 
         [TestCase("dio.jpg")]
@@ -191,7 +219,7 @@ namespace Bundler.QA.Backend
                 Version = "1.0.0",
                 Targets = "ctr,hac,cafe"
             };
-            
+
             var response = await this._client.PostAsync($"compile?{query}", content);
 
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
