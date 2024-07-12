@@ -113,7 +113,7 @@ namespace Bundler.Server.Controllers
             return new ProcessStartInfo("tex3ds", $"-f rgba8888 -z auto \"{source}\" -o \"{destination}\"");
         }
 
-        private (string, string) ConvertMediaFile(string directory, IFormFile file, bool isFont)
+        private async Task<(string, string)> ConvertMediaFile(string directory, IFormFile file, bool isFont)
         {            
             var sourcePath = Path.Join(directory, file.FileName);
 
@@ -145,7 +145,7 @@ namespace Bundler.Server.Controllers
                 return (string.Empty, string.Empty);
             }
             
-            process.WaitForExit();
+            await process.WaitForExitAsync();
 
             if (!Path.Exists(convertedPath))
             {
@@ -157,11 +157,25 @@ namespace Bundler.Server.Controllers
             return (convertedFilename, GetBase64FromContent(convertedPath));
         }
 
+        private async Task<(string, string)> ProcessFileAsync(string tempDirectory, IFormFile file, bool isFont, SemaphoreSlim semaphores)
+        {
+            await semaphores.WaitAsync();
+
+            try
+            {
+                return await ConvertMediaFile(tempDirectory, file, isFont);
+            }
+            finally
+            {
+                semaphores.Release();
+            }
+        }
+
         /// <summary>
         /// Converts uploaded files to the appropriate format
         /// </summary>
         [HttpPost]
-        public IActionResult Post()
+        public async Task<IActionResult> Post()
         {
             var files = this.HttpContext.Request.Form.Files;
 
@@ -175,7 +189,10 @@ namespace Bundler.Server.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError);
 
             Dictionary<string, string> fileData = [];
+            List<Task<(string, string)>> tasks = [];
+
             bool partial = false;
+            var semaphores = new SemaphoreSlim(5);
 
             foreach (var file in files)
             {
@@ -191,15 +208,22 @@ namespace Bundler.Server.Controllers
                     return StatusCode(StatusCodes.Status415UnsupportedMediaType);
 
                 bool isFont = FontMimeTypes.Contains(mimeType);
-                (string filename, string data) = ConvertMediaFile(tempDirectory, file, isFont);
+                tasks.Add(ProcessFileAsync(tempDirectory, file, isFont, semaphores)); 
+            }
 
-                if (filename == string.Empty || data == string.Empty)
+            await Task.WhenAll(tasks);
+
+            foreach (var task in tasks)
+            {
+                var (filename, base64) = await task;
+
+                if (string.IsNullOrEmpty(filename) || string.IsNullOrEmpty(base64))
                 {
                     partial = true;
                     continue;
                 }
 
-                fileData.Add(filename, data);
+                fileData.Add(filename, base64);
             }
 
             fileData.Add("log", this._logger.GetLogs());
