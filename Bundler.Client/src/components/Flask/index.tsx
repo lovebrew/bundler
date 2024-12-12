@@ -1,109 +1,151 @@
-import { useState } from "react";
-import tw from "tailwind-styled-components";
-import Logo from "@/src/assets/logo.svg";
+import { useState } from 'react';
+import Logo from '@/src/assets/logo.svg';
+import styles from './index.module.css';
 
-const FlaskImage = tw.img`
-absolute
-w-full
-h-full
-aspect-square
-object-contain
-flex-auto
-drop-shadow-flask
-animate-potionAppear
-`;
+import { toastError, toastSuccess } from "@components/Toast";
+import { processAssetGameFiles, processBundleGameFiles } from "@/src/services/BundleService";
+import { BundlerError, UploadError } from "@/src/error";
+import { zipMimes } from '@/src/types';
+import { isValidFile, getMIMEFromFile } from '@/src/utility';
 
-const FlaskContainer = tw.div`
-overflow-hidden
-w-full
-max-h-full
-min-h-[80%]
-grow
-relative
-`;
+import toast from 'react-hot-toast';
+import { logError } from '@/src/services/LoggingService';
+import Bundle from '@/src/classes/Bundle';
+import { loadConfiguration } from '@/src/classes/Configuration';
 
-type DropZoneProps = { isDrag?: boolean };
-
-const DropZone = tw.div<DropZoneProps>`
-  absolute
-  top-0
-  left-0
-  right-0
-  bottom-0
-  m-2
-  border-x-4
-  border-y-4
-  rounded-xl
-  transition-all
-  border-dashed
-  duration-500
-  border-black
-  bg-[#21212166]
-  ${({ isDrag }) => (isDrag ? `opacity-1` : `opacity-0`)}
-`;
-
-const FileInput = tw.input`
-  relative
-  h-full
-  w-full
-  opacity-0
-`;
-
-type FlaskProps = {
-  uploadHandler: (a: File[]) => void;
-  accept: string | string[];
-};
-
-function Flask({ uploadHandler, accept }: FlaskProps) {
+const Flask = () => {
   const [isDragActive, setDragActive] = useState<boolean>(false);
 
-  const handleDragEnter = () => {
-    setDragActive(true);
+  const handleDragEnter = () => setDragActive(true);
+  const handleDragLeave = () => setDragActive(false);
+
+  const accept: string = [
+    '.zip',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.otf',
+    '.ttf',
+    '.toml'
+  ].join(",");
+
+  const downloadBlob = (blob: Blob): string => {
+    toastSuccess();
+    const link = document.createElement("a");
+
+    link.href = URL.createObjectURL(blob);
+    link.download = `bundle.zip`;
+    link.click();
+
+    window.URL.revokeObjectURL(link.href);
+    return "Downloaded."
   };
 
-  const handleDragLeave = () => {
-    setDragActive(false);
-  };
+  const handleZipUpload = async (zip: File) => {
+    toast.promise(processBundleGameFiles(zip), {
+      loading: "Uploading..",
+      success: downloadBlob,
+      error: (error: Error) => {
+        toastError();
+        return error.message;
+      }
+    });
+  }
 
-  const handleDrop = (fileEvent: React.DragEvent<HTMLInputElement>) => {
+  const handleAssetsUpload = async (files: Array<File>) => {
+    toast.promise(processAssetGameFiles(files), {
+      loading: "Uploading..",
+      success: downloadBlob,
+      error: (error: Error) => {
+        toastError();
+        return error.message;
+      }
+    });
+  }
+
+  const validateFiles = async (files: Array<File>): Promise<void> => {
+    const result: Array<string> = [];
+    for (const file of files) {
+      const valid = await isValidFile(file);
+
+      if (!valid) {
+        const type = await getMIMEFromFile(file);
+        result.push(`${file.name}: Invalid file type: ${type || "unknown"}`);
+      }
+    }
+
+    if (result.length > 0) {
+      logError(`Upload errors detected for files:`, result);
+      throw new BundlerError(UploadError.FileUploadFailed);
+    }
+  }
+
+  async function handleUpload(files: Array<File>): Promise<void> {
+    try {
+      if (files.length === 0) {
+        throw new BundlerError(UploadError.NoFilesUploaded);
+      }
+
+      await validateFiles(files);
+
+      const file = files[0];
+      if (file.name == Bundle.CONFIG_NAME) {
+        loadConfiguration(await file.text());
+        toastSuccess("Configuration OK.");
+        return;
+      }
+
+      const mime = await getMIMEFromFile(file);
+
+      if (mime && zipMimes.includes(mime)) {
+        return await handleZipUpload(file);
+      }
+      await handleAssetsUpload(files);
+    } catch (exception) {
+      if (exception instanceof Error) {
+        return toastError(exception.message);
+      }
+      toastError("An unexpected error occurred.");
+    }
+  }
+
+  const handleDrop = (fileEvent: React.DragEvent<HTMLInputElement>): void => {
     fileEvent.preventDefault();
     setDragActive(false);
     const files = Array.from(fileEvent.dataTransfer.files);
-    uploadHandler(files);
+    handleUpload(files);
   };
 
-  const handleChange = (fileEvent: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (fileEvent: React.ChangeEvent<HTMLInputElement>): void => {
     fileEvent.preventDefault();
     setDragActive(false);
-    // Our input element is of type `file`, so we can be sure it's not null
     const fileList = fileEvent.target.files as FileList;
     const files = Array.from(fileList);
-
-    uploadHandler(files);
-    fileEvent.target.value = "";
+    handleUpload(files);
+    fileEvent.target.value = '';
   };
 
-  if (Array.isArray(accept)) {
-    accept = accept.reduce((a, b) => `${a},${b}`);
-  }
-
   return (
-    <FlaskContainer>
-      <FlaskImage src={Logo} />
-      <DropZone isDrag={isDragActive}>
-        <FileInput
-          type="file"
-          title=""
+    <div className={styles.flaskContainer}>
+      <img id="flaskImage" className={styles.flaskImage} src={Logo} alt="Flask Logo" />
+      <div
+        className={`${styles.dropZone} ${isDragActive ? styles.dropZoneActive : styles.dropZoneInactive} `}
+      >
+        <input
+          id='fileUpload'
+          type='file'
+          title=''
           accept={accept}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onChange={handleChange}
           multiple
+          className={styles.fileInput}
         />
-      </DropZone>
-    </FlaskContainer>
+      </div>
+    </div>
   );
-}
+};
 
 export default Flask;

@@ -1,48 +1,96 @@
-import localforage from "localforage";
-import { BundlerCacheItem } from "./services/types";
+import Dexie from "dexie";
+import MurmurHash3 from "imurmurhash";
 
-class Botanist {
-  private storage: LocalForage;
-  private isReady: boolean = false;
+export type CachedItem = {
+  file: File;
+  expiration: number;
+};
 
-  constructor(name: string, storeName: string) {
-    this.storage = localforage.createInstance({
-      name,
-      storeName,
-      driver: localforage.INDEXEDDB,
+class BundlerDatabase extends Dexie {
+  cache: Dexie.Table<CachedItem, string>;
+  initialized = false;
+
+  constructor() {
+    super("Bundler");
+
+    this.version(1).stores({
+      cache: ",hash",
+    });
+
+    this.cache = this.table("cache");
+  }
+
+  private calculateExpiryDate(): number {
+    const today = new Date();
+    const expiration = new Date(today.setDate(today.getDate() + 3));
+
+    return expiration.valueOf();
+  }
+
+  private async calculateHash(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer();
+
+    const encoded: string = await new Promise((resolve) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(new Blob([buffer]));
+    });
+
+    const hash = MurmurHash3(encoded.slice(encoded.indexOf(",") + 1));
+    return hash.result().toString();
+  }
+
+  async setItem(file: File, keyable: File | string): Promise<void> {
+    try {
+      if (!this.initialized) {
+        await this.initialize();
+        this.initialized = true;
+      }
+
+      const item = { file, expiration: this.calculateExpiryDate() };
+      let key: string;
+
+      if (keyable instanceof File) key = await this.calculateHash(keyable);
+      else key = keyable;
+
+      this.cache.put(item, key);
+    } catch (exception) {
+      console.error(exception);
+    }
+  }
+
+  async getItem(index: File | string): Promise<CachedItem | undefined> {
+    if (!this.initialized) {
+      await this.initialize();
+      this.initialized = true;
+    }
+
+    let key;
+    if (index instanceof File) key = await this.calculateHash(index);
+    else key = index;
+
+    return await this.cache.get(key);
+  }
+
+  async checkRemoveItems() {
+    const today = new Date().valueOf();
+
+    await this.transaction("rw", this.cache, () => {
+      this.cache.toCollection().each((item, cursor) => {
+        if (item.expiration < today) this.cache.delete(cursor.primaryKey);
+      });
     });
   }
 
-  private async checkTimestamps(): Promise<void> {
-    if (this.isReady) return;
-
-    const currentTime = Date.now();
-
-    if ((await this.storage.length()) === 0) return;
-
-    const keys = await this.storage.keys();
-
-    for (const key of keys) {
-      const item: BundlerCacheItem | null = await this.storage.getItem(key);
-
-      if (item !== null && item.timestamp < currentTime) {
-        await this.storage.removeItem(key);
-      }
+  async initialize() {
+    try {
+      await this.open();
+      await this.checkRemoveItems();
+    } catch (error) {
+      console.error("Error initializing the database:", error);
     }
-
-    this.isReady = true;
-  }
-
-  // this doesn't like any but who cares
-  public async getItem(key: string): Promise<any | null> {
-    if (!this.isReady) await this.checkTimestamps();
-    return await this.storage.getItem(key);
-  }
-
-  public async setItem(key: string, value: BundlerCacheItem): Promise<void> {
-    await this.storage.setItem(key, value);
   }
 }
 
-export const binariesCache = new Botanist("bundler", "binaryCache");
-export const assetsCache = new Botanist("bundler", "assetCache");
+export const database = new BundlerDatabase();

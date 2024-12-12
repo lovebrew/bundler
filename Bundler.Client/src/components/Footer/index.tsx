@@ -1,22 +1,6 @@
-import tw from "tailwind-styled-components";
+import styles from './index.module.css';
 
-const FooterContainer = tw.footer`
-flex
-p-3
-bg-neutral-800
-flex-row
-max-sm:text-base
-content-center
-justify-center
-items-center
-font-coolvetica
-text-xl
-w-full
-gap-1
-drop-shadow-footer
-`;
-
-const Spacer = () => <span className="px-1">•</span>;
+const Spacer = () => <span className={styles.spacer}>•</span>;
 
 type LinkProps = {
   icon: string;
@@ -26,18 +10,16 @@ type LinkProps = {
 
 function Link(props: LinkProps) {
   return (
-    <a href={props.href} className="px-1">
-      <i className={`${props.icon} pr-2`}></i>
-      <span className={`${props.href !== undefined && "max-sm:hidden"}`}>
-        {props.children}
-      </span>
+    <a href={props.href} className={styles.link}>
+      <i className={`${props.icon} ${styles.linkIcon}`}></i>
+      <span className={props.href ? "hide-sm" : ""}>{props.children}</span>
     </a>
   );
 }
 
 function Footer() {
   return (
-    <FooterContainer>
+    <footer className={styles.footerContainer}>
       <Link
         icon="fa-solid fa-flask"
         href="https://github.com/lovebrew/lovepotion"
@@ -58,9 +40,9 @@ function Footer() {
       >
         Donate
       </Link>
-      <Spacer />
+      <span className={styles.spacer} />
       <Link icon="fa-regular fa-copyright">LÖVEBrew Team</Link>
-    </FooterContainer>
+    </footer>
   );
 }
 

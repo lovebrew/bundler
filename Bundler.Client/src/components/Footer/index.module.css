@@ -1,0 +1,36 @@
+.footerContainer {
+  display: flex;
+  @apply p-3;
+  @apply bg-neutral-800;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Coolvetica', sans-serif;
+  @apply text-xl;
+  width: 100%;
+  gap: 0.25rem;
+  box-shadow: 0px -4px 4px rgba(0, 0, 0, 0.25);
+}
+
+.spacer {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  @apply px-1;
+}
+
+.linkIcon {
+  @apply pr-2;
+}
+
+.linkText {
+  display: inline-block;
+}
+
+.linkHidden {
+  display: none;
+}
