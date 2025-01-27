@@ -1,37 +1,54 @@
+
 # Bundler
 
-Bundler is a web-based service designed to streamline the process of managing [LÖVE Potion](https://github.com/lovebrew/lovepotion) games. With Bundler, users can upload their games, convert assets, and fuse games together, all through a convenient web interface.
+A single-page web application that simplifies the process of converting assets and building homebrew executable files for the Nintendo 3DS, Switch and Wii U. The application offers drag-and-drop functionality for multiple files, seamless backend integration, and user-friendly feedback mechanisms.
 
 ## Features
 
-- **Asset Conversion**: Convert supported texture and font formats to those compatible with LÖVE Potion on 3DS.
-- **Game Packaging**: Create a binary for your game that can be run on 3DS, Switch, and Wii U with custom metadata and icons.
+- **Drag-and-Drop File Uploads**: Users can upload multiple files via drag-and-drop or browsing.
+- **File Validation**: Frontend validation ensures that uploaded files meet the required specifications.
+- **Asset Conversion**: Converts textures and fonts into special formats for the 3DS.
+- **Homebrew Compilation**: Builds homebrew executable files with metadata like title, description, and icon for the homebrew menu.
+- **User Feedback**: Displays toast messages for success or errors during the process.
+- **Download Handling**: Allows users to download files and verify their contents.
 
-## Run Locally
+## Deployment
 
-Clone the project
+### Prerequisites
 
-```bash
-  git clone https://github.com/lovebrew/bundler
-```
+- [Rust](https://www.rust-lang.org/)
+- [npm](https://www.npmjs.com/)
+- [devkitPro pacman](https://devkitpro.org/wiki/devkitPro_pacman) and the following packages:
+  - `tex3ds` for 3DS asset conversion
+  - `3dstools` for building 3DSX binaries
+  - `switch-tools` for building NRO binaries
+  - `wut-tools` for building WUHB binaries
 
-Open the solution `bundler.sln` in Visual Studio or Visual Studio Code and select `Bundler.Server` to run. Click the play button to launch and point your browser to `http://localhost:5001`.
+### Installation
 
-## Dependencies
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd bundler
+   ```
 
-In order for the application to properly work, several files must be given in the `Resources` directory inside of the `Bundler.Server` project. These files are specific to each console which are the ELF binaries, shaders and RomFS data. The latter are included, but the ELF binaries can be found in the [LÖVE Potion repository](https://github.com/lovebrew/lovepotion/releases).
+2. Install frontend dependencies:
+   ```bash
+   cd frontend
+   npm install
+   ```
 
-Furthermore, for texture and font conversions to work, `tex3ds` and `mkbcfnt` must be installed which are provided by [devitPro's package manager](https://devkitpro.org/wiki/devkitPro_pacman). The following packages must also be installed from devkitPro-pacman for fused game content to work as well: `3ds-tools`, `switch-tools`, and `wiiu-tools`.
-## Running Tests
+3. Build the frontend:
+   ```bash
+   npm run build
+   ```
 
-To run tests, the Bundler will require being ran locally first.
+4. Run the backend:
+   ```bash
+   cd ../backend
+   cargo run
+   ```
 
-```
-  dotnet run --project Bundler.Server/Bundler.Server.csproj
-```
+## Contributing
 
-Once this is running, tests may be run.
-
-```
-  dotnet test
-```
+Contributions are welcome! Please submit a pull request or file an issue if you have suggestions or bug reports.
