@@ -1,9 +1,11 @@
+@import "tailwindcss";
+
 .bannerBackground {
-  @apply fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 z-40 pointer-events-auto;
+  @apply fixed top-0 left-0 right-0 bottom-0 bg-black bg-black/50 z-40 pointer-events-auto;
 }
 
 .bannerOverlay {
-  @apply fixed top-0 left-0 right-0 bg-black bg-opacity-70 text-white p-4 text-center text-sm font-semibold;
+  @apply fixed top-0 left-0 right-0 bg-black bg-black/70 text-white p-4 text-center text-sm font-semibold;
   @apply transform -translate-y-full transition-all duration-500 ease-out backdrop-blur-sm z-50 pointer-events-auto;
 }
 
