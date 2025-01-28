@@ -20,7 +20,7 @@ function Link(props: LinkProps) {
 
 function Footer() {
   return (
-    <div className={styles.footerContainer}>
+    <div className={`${styles.footerContainer} p-3`}>
       <Link
         icon="fa-solid fa-flask"
         href="https://github.com/lovebrew/lovepotion"
