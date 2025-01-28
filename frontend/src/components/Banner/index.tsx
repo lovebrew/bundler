@@ -14,13 +14,17 @@ const Banner = () => {
     <div>
       {!isSupported && (
         <div className={styles.bannerBackground}>
-          <div className={`${styles.bannerOverlay} ${styles.bannerOverlayOpen}`}>
-            <p>Your browser is not supported. Please update to a modern browser.</p>
+          <div
+            className={`${styles.bannerOverlay} ${styles.bannerOverlayOpen}`}
+          >
+            <p>
+              Your browser is not supported. Please update to a modern browser.
+            </p>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 };
 
 export default Banner;

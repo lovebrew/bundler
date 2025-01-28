@@ -1,7 +1,8 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tsconfigPaths from "vite-tsconfig-paths";
-import tailwindcss from "@tailwindcss/vite";
+
+import tailwindcss from "tailwindcss";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -12,10 +13,12 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tsconfigPaths(), tailwindcss()],
     define: {
       "process.env.CONVERT_URL": JSON.stringify(`${base_url}/convert`),
-      "process.env.COMPILE_URL": JSON.stringify(`${base_url}/compile`)
+      "process.env.COMPILE_URL": JSON.stringify(`${base_url}/compile`),
     },
     css: {
-      "@tailwindcss/postcss": {},
+      postcss: {
+        plugins: [tailwindcss()],
+      },
     },
   };
 });

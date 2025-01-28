@@ -1,9 +1,9 @@
-import Flask from '@components/Flask';
+import Flask from "@components/Flask";
 
-import Footer from '@components/Footer';
-import Banner from '@/src/components/Banner';
+import Footer from "@components/Footer";
+import Banner from "@/src/components/Banner";
 
-import Toast from './components/Toast';
+import Toast from "@/src/components/Toast";
 
 function App() {
   return (

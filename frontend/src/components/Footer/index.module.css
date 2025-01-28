@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 .footerContainer {
   display: flex;
@@ -7,7 +9,7 @@
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  font-family: 'Coolvetica', sans-serif;
+  font-family: "Coolvetica", sans-serif;
   @apply text-xl;
   width: 100%;
   gap: 0.25rem;

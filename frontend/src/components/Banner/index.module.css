@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 .bannerBackground {
   @apply fixed top-0 left-0 right-0 bottom-0 bg-black bg-black/50 z-40 pointer-events-auto;
