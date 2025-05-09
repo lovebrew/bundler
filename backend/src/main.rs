@@ -1,10 +1,11 @@
 use axum::{
+    Router,
     extract::DefaultBodyLimit,
     routing::{get, post},
-    Router,
 };
 
 use log::{error, info};
+use rustls::crypto;
 use tokio::signal;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
@@ -20,6 +21,9 @@ mod types;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     common::logger::init_file();
     modules::environment::check_environment()?;
+    crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install default crypto provider");
 
     if let Ok(config) = common::config::AppConfig::from_env() {
         // Download and unzip assets
