@@ -1,0 +1,21 @@
+appenders:
+  rollingfile:
+    kind: rolling_file
+    path: "logs/bundler_rCURRENT.log"
+    encoder:
+      pattern: "[{d(%Y-%m-%d %H:%M:%S%.3f)} {l}] {m}{n}"
+    policy:
+      kind: compound
+      roller:
+        kind: fixed_window
+        pattern: "logs/bundler_rOLD{}.log"
+        base: 0
+        count: 4
+      trigger:
+        kind: size
+        limit: 4 MB
+
+root:
+  level: info
+  appenders:
+    - rollingfile
