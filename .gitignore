@@ -1,0 +1,8 @@
+bin/
+obj/
+.vscode
+.vs
+build
+downloads/
+logs/
+*.elf
