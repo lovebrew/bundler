@@ -1,16 +1,15 @@
-use octocrab::models::App;
 use rocket::http::Status;
 use rocket::response::{Responder, Result as RocketResult};
+use rocket::serde::json::json;
 
 use serde::Serialize;
-use serde_json::json;
 use std::io::Cursor;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum TextureError {
-    #[error("Unsupported texture format")]
-    UnsupportedFormat,
+    #[error("Unsupported texture format {format} for '{name}'")]
+    UnsupportedFormat { format: String, name: String },
     #[error("Corrupted texture data")]
     CorruptedData,
     #[error("Failed to parse texture")]
@@ -21,8 +20,8 @@ pub enum TextureError {
 
 #[derive(Debug, Error)]
 pub enum FontError {
-    #[error("Unsupported font format")]
-    UnsupportedFormat,
+    #[error("Unsupported font format {format} for '{name}'")]
+    UnsupportedFormat { format: String, name: String },
     #[error("Corrupted font data")]
     CorruptedData,
     #[error("Failed to parse font")]
@@ -33,6 +32,8 @@ pub enum FontError {
 pub enum AppError {
     #[error("Texture error: {0}")]
     Texture(#[from] TextureError),
+    #[error("Font error: {0}")]
+    Font(#[from] FontError),
     #[error("Missing field: {0}")]
     MissingField(&'static str),
     #[error("Invalid format: {0}")]
@@ -53,6 +54,7 @@ impl<'r> Responder<'r, 'static> for AppError {
             AppError::MissingField(_) | AppError::InvalidFormat(_) => Status::BadRequest,
             AppError::Internal => Status::InternalServerError,
             AppError::Texture(_) => Status::UnprocessableEntity,
+            AppError::Font(_) => Status::UnprocessableEntity,
         };
 
         let body = json!(ErrorResponse {

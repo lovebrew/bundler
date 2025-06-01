@@ -1,4 +1,3 @@
-use std::io::Cursor;
 use ttf_parser::Face;
 
 use crate::types::error::FontError;

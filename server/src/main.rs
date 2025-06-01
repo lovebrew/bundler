@@ -8,7 +8,7 @@ mod services;
 mod tools;
 mod types;
 
-use controllers::convert::convert;
+use controllers::{convert::convert, health::health_check};
 use services::github::GithubService;
 
 const LOGGING_CONFIG: &str = include_str!("log4rs.yml");
@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
     GithubService::sync().await?;
 
     let _ = rocket::build()
-        .mount("/", routes![convert])
+        .mount("/", routes![convert, health_check])
         .launch()
         .await?;
 

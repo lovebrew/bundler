@@ -1,6 +1,5 @@
 import * as fs from 'fs';
-
-const BuildDirectory = '../server/static';
+const BuildDirectory = 'dist';
 
 async function clean() {
   console.log('Cleaning the output directory...');

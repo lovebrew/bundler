@@ -18,7 +18,7 @@ impl Texture {
         Ok(Some(Texture))
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Option<Self>, TextureError> {
+    pub fn from_bytes(name: &str, bytes: &[u8]) -> Result<Option<Self>, TextureError> {
         if bytes.is_empty() {
             return Err(TextureError::CorruptedData);
         }
@@ -28,7 +28,10 @@ impl Texture {
             if let Ok(img) = reader.decode() {
                 return Self::validate_image(img);
             }
-            return Err(TextureError::UnsupportedFormat);
+            return Err(TextureError::UnsupportedFormat {
+                format: format!("{:?}", format),
+                name: name.to_string(),
+            });
         }
         Ok(None)
     }
