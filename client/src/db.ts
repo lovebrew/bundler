@@ -2,13 +2,13 @@ import Dexie from 'dexie';
 import EntityTable from 'dexie';
 import { x64 } from 'murmurhash3js';
 
-interface CachedItem {
+interface CacheEntry {
   file: File;
   expiration: number;
 }
 
 const database = new Dexie('Bundler') as Dexie & {
-  cache: EntityTable<string, CachedItem>;
+  cache: EntityTable<string, CacheEntry>;
 };
 
 database.version(1).stores({
@@ -21,7 +21,7 @@ database.on('ready', async () => {
   await database.transaction('rw', database.cache, () => {
     database.cache
       .toCollection()
-      .each((item: CachedItem, cursor: IDBCursor) => {
+      .each((item: CacheEntry, cursor: IDBCursor) => {
         if (item.expiration < today) database.cache.delete(cursor.primaryKey);
       });
   });
@@ -50,7 +50,7 @@ async function calculateHash(file: File) {
 
 export async function getDatabaseItem(
   index: File | string
-): Promise<CachedItem | undefined> {
+): Promise<CacheEntry | undefined> {
   let key;
   if (index instanceof File) key = await calculateHash(index);
   else key = index;
@@ -75,17 +75,4 @@ export async function setDatabaseItem(
   }
 }
 
-/** Queries available disk quota.
-  @see https://developer.mozilla.org/en-US/docs/Web/API/StorageEstimate
-  @returns {Promise<{quota: number, usage: number}>} Promise resolved with
-  {quota: number, usage: number} or undefined.
-*/
-export async function getEstimatedQuota(): Promise<
-  StorageEstimate | undefined
-> {
-  return navigator.storage && navigator.storage.estimate
-    ? await navigator.storage.estimate()
-    : undefined;
-}
-
-export type { CachedItem };
+export type { CacheEntry };

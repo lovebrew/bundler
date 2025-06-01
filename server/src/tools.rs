@@ -1,3 +1,4 @@
+use anyhow::Result;
 use log::{error, info};
 use which;
 
@@ -17,7 +18,7 @@ fn check_binary(binary: &str) -> bool {
     true
 }
 
-pub fn check_environment() -> Result<(), String> {
+pub fn check_environment() -> Result<()> {
     info!("Starting environment check for required programs...");
 
     let mut valid = true;
@@ -32,9 +33,9 @@ pub fn check_environment() -> Result<(), String> {
 
     if valid {
         info!("All required programs are installed.");
-        Ok(())
     } else {
         error!("Some required programs are missing");
-        Err("Some required programs are missing.".into())
     }
+
+    Ok(())
 }

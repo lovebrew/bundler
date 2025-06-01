@@ -1,112 +1,58 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use core::error;
 
-use axum::extract::Multipart;
-use axum::{
-    body::Bytes,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
-use tempfile::tempdir;
-use tokio::{task, task::JoinHandle};
+use log::error;
+use rocket::form::{Form, FromForm};
+use rocket::fs::TempFile;
+use rocket::tokio::io::AsyncReadExt;
 
-use crate::common::logger::MemoryLogger;
-use crate::enums::api_error::ApiError;
-use crate::traits::convertible::Convertible;
+use crate::types::error::AppError;
 use crate::types::font::Font;
 use crate::types::texture::Texture;
 
-fn spawn_conversion_task(
-    save_path: PathBuf,
-    contents: Bytes,
-) -> JoinHandle<Result<(String, String), ApiError>> {
-    task::spawn(async move {
-        if let Some(texture) = Texture::new(&contents, &save_path).await? {
-            texture.convert().await
-        } else if let Some(font) = Font::new(&contents, &save_path).await? {
-            font.convert().await
-        } else {
-            // None should never happen
-            let filename = match save_path.file_name() {
-                Some(name) => name.to_string_lossy().to_string(),
-                None => return Err(ApiError::ServerError("Failed to get filename".to_string())),
-            };
-
-            return Err(ApiError::UnsupportedMediaType(format!(
-                "Unsupported file: '{}'. Expected a PNG/JPEG texture or TTF/OTF font.",
-                filename
-            )));
-        }
-    })
+#[derive(FromForm)]
+pub struct FormData<'f> {
+    files: Vec<TempFile<'f>>,
 }
 
-async fn process_multipart_files(
-    multipart: &mut Multipart,
-    directory: &Path,
-    logger: &mut MemoryLogger,
-) -> Result<Vec<JoinHandle<Result<(String, String), ApiError>>>, ApiError> {
-    let mut tasks = Vec::<JoinHandle<Result<(String, String), ApiError>>>::new();
+async fn read_form_file(file: &TempFile<'_>) -> Result<Vec<u8>, AppError> {
+    let mut buffer = vec![];
+    let name = match &file.name() {
+        Some(name) => name.to_string(),
+        None => return Err(AppError::Internal),
+    };
+    let mut file = file.open().await.map_err(|e| {
+        error!("Failed to open file: {name} ({e:?})");
+        AppError::Internal
+    })?;
+    file.read_to_end(&mut buffer).await.map_err(|e| {
+        error!("Failed to read file: {name} ({e:?})");
+        AppError::Internal
+    })?;
+    Ok(buffer)
+}
 
-    while let Ok(Some(field)) = multipart.next_field().await {
-        let filename = match &field.file_name() {
-            Some(name) => String::from(*name),
+enum Asset {
+    Texture(Texture),
+    Font(Font),
+}
+
+#[post("/convert", format = "multipart/form-data", data = "<form>")]
+pub async fn convert(mut form: Form<FormData<'_>>) -> Result<(), AppError> {
+    let directory = tempfile::tempdir().expect("Failed to create temp directory");
+
+    for file in form.files.iter_mut() {
+        let buffer = read_form_file(file).await?;
+        // TODO: load texture or font
+        let name = match file.name() {
+            Some(name) => name.to_string(),
             None => continue,
         };
-
-        logger.info(&format!("Processing file: {}", filename));
-
-        let contents = field
-            .bytes()
-            .await
-            .map_err(|e| ApiError::BadRequest(e.to_string()))?;
-
-        if contents.is_empty() {
-            logger.error(&format!("Cannot process {}: empty file", filename));
+        let filepath = directory.path().join(&name);
+        if let Err(e) = file.persist_to(&filepath).await {
+            error!("Failed to save file {name}: {e}");
             continue;
         }
-
-        let save_path = directory.join(&filename);
-        tasks.push(spawn_conversion_task(save_path, contents));
+        // TODO: process the file via threads
     }
-
-    if tasks.is_empty() {
-        return Err(ApiError::BadRequest("No files to convert".to_string()));
-    }
-
-    Ok(tasks)
-}
-
-pub async fn convert_handler(mut multipart: Multipart) -> Result<Response, ApiError> {
-    let mut hashmap = HashMap::<String, String>::new();
-    let mut logger = MemoryLogger::new();
-
-    let mut had_errors = false;
-
-    let directory = tempdir().map_err(|e| ApiError::server_error(e.to_string()))?;
-    let save_directory = directory.path();
-
-    let tasks = process_multipart_files(&mut multipart, save_directory, &mut logger).await?;
-
-    for task in tasks {
-        match task.await {
-            Ok(Ok((filename, encoded))) => {
-                hashmap.insert(filename, encoded);
-            }
-            Ok(Err(e)) => {
-                logger.error(&e.error_response().message);
-                had_errors = true;
-            }
-            Err(_) => had_errors = true,
-        }
-    }
-
-    hashmap.insert(String::from("log"), logger.get_logs());
-
-    let code = if had_errors {
-        StatusCode::PARTIAL_CONTENT
-    } else {
-        StatusCode::OK
-    };
-
-    Ok((code, axum::Json(hashmap)).into_response())
+    Ok(())
 }

@@ -7,3 +7,4 @@ resources
 .cache
 static
 release
+Rocket.toml

@@ -17,12 +17,9 @@ build-for target:
 build: build-assets
   cargo build --release
   cp ./target/release/bundler{{binary_suffix}} {{justfile_directory()}}/{{release_dir}}
-    
+
 build-linux: build-assets
   build-for x86_64-unknown-linux-gnu
 
 build-windows: build-assets
   build-for x86_64-pc-windows-msvc
-
-build-pi: build-assets
-  build-for aarch64-unknown-linux-gnu
