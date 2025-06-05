@@ -20,22 +20,25 @@ fn check_binary(binary: &str) -> bool {
 
 pub fn check_environment() -> Result<()> {
     info!("Starting environment check for required programs...");
+    let mut missing = Vec::new();
 
-    let mut valid = true;
     for &(group, binaries) in BINARIES {
         info!("Checking programs for group: '{}'", group);
         for binary in binaries {
             if !check_binary(binary) {
-                valid = false;
+                missing.push(binary);
             }
         }
     }
 
-    if valid {
-        info!("All required programs are installed.");
-    } else {
-        error!("Some required programs are missing");
+    if !missing.is_empty() {
+        error!("Missing required programs: {:?}", missing);
+        return Err(anyhow::anyhow!(
+            "Some required programs are missing: {:?}",
+            missing
+        ));
     }
 
+    info!("All required programs are installed and environment is ready.");
     Ok(())
 }

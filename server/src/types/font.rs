@@ -1,6 +1,9 @@
+use anyhow::anyhow;
 use ttf_parser::Face;
 
-use crate::types::error::FontError;
+use std::path::Path;
+
+use crate::{traits::processable::Processable, types::error::FontError};
 
 pub struct Font;
 
@@ -9,10 +12,33 @@ impl Font {
         if bytes.is_empty() {
             return Err(FontError::CorruptedData);
         }
-
         match Face::parse(bytes, 0) {
             Ok(_) => Ok(Some(Font)),
-            Err(_) => Err(FontError::ParseFailure),
+            Err(_) => Ok(None),
+        }
+    }
+}
+
+use anyhow::Result;
+use std::process::Command;
+
+const EXECUTABLE: &str = "mkbcfnt";
+
+impl Processable for Font {
+    fn process(&self, filepath: &Path) -> Result<(&str, Vec<u8>)> {
+        let out_file = filepath.with_extension("bcfnt");
+        let mut command = Command::new(EXECUTABLE);
+        command.arg(filepath).arg("-o").arg(&out_file);
+
+        match command.output() {
+            Ok(output) => {
+                if !output.status.success() {
+                    return Err(anyhow!("{}", String::from_utf8_lossy(&output.stderr)));
+                }
+                let bytes = std::fs::read(out_file)?;
+                Ok(("bcfnt", bytes))
+            }
+            Err(e) => Err(anyhow::anyhow!("Failed to execute {}: {}", EXECUTABLE, e)),
         }
     }
 }

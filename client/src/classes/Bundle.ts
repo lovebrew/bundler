@@ -22,7 +22,7 @@ export class Bundle {
     const config = await Config.from(file);
     if (!config.ok) return err(config.error);
     this.config = config.value;
-    return ok();
+    return ok(undefined);
   }
 
   private getFile(filename: string): Entry | undefined {

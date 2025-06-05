@@ -8,8 +8,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum TextureError {
-    #[error("Unsupported texture format {format} for '{name}'")]
-    UnsupportedFormat { format: String, name: String },
+    #[error("Unsupported texture format")]
+    UnsupportedFormat,
     #[error("Corrupted texture data")]
     CorruptedData,
     #[error("Failed to parse texture")]

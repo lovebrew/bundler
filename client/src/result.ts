@@ -1,8 +1,8 @@
-export type Result<T, E> = Ok<T> | Warn<T> | Err<E>;
+export type Result<T, E> = Ok<T> | Err<E>;
 
 export type Ok<T> = {
   ok: true;
-  value?: T;
+  value: T;
 };
 
 export type Err<E> = {
@@ -15,7 +15,7 @@ export type Warn<T> = {
   value?: T;
 };
 
-export function ok<T>(value?: T): Ok<T> {
+export function ok<T>(value: T): Ok<T> {
   return { ok: true, value };
 }
 

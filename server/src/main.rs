@@ -4,11 +4,16 @@ extern crate rocket;
 use anyhow::Result;
 
 mod controllers;
+mod cors;
+mod models;
 mod services;
 mod tools;
+mod traits;
 mod types;
+mod utilities;
 
-use controllers::{convert::convert, health::health_check};
+use controllers::{compile::compile, convert::convert, health::health_check};
+use cors::Cors;
 use services::github::GithubService;
 
 const LOGGING_CONFIG: &str = include_str!("log4rs.yml");
@@ -22,7 +27,8 @@ async fn main() -> Result<()> {
     GithubService::sync().await?;
 
     let _ = rocket::build()
-        .mount("/", routes![convert, health_check])
+        .mount("/", routes![convert, compile, health_check])
+        .attach(Cors)
         .launch()
         .await?;
 

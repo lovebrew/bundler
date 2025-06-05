@@ -1,25 +1,42 @@
 import { Result, ok, err } from '@/result';
 import { BundlerError, UploadError } from '@/error';
-import { Config } from '@classes/Config';
 import { Bundle } from '@classes/Bundle';
-import { toast } from 'sonner';
+import { Asset } from "@classes/Asset";
 
-function handleAssetsUpload(assets: Array<File>) {}
+type AllowedFile = {
+  file: File,
+  isBundle: boolean,
+  isAsset: boolean,
+};
 
-async function handleZipUpload(
-  zip: File
-): Promise<Result<undefined, BundlerError>> {
-  let result = await Bundle.from(zip);
-  if (!result.ok) return err(result.error);
-  return ok();
-}
+async function filterResults(
+  results: Array<AllowedFile>
+): Promise<[Array<Bundle>, Array<File>, Array<{ file: File; error: BundlerError }>]> {
+  const bundleResults = await Promise.all(
+    results
+      .filter(r => r.isBundle)
+      .map(async r => {
+        const res = await Bundle.from(r.file);
+        return { file: r.file, result: res };
+      })
+  );
 
-async function handleConfigUpload(
-  file: File
-): Promise<Result<string, BundlerError>> {
-  let result = await Config.from(await file.text());
-  if (!result.ok) return err(result.error);
-  return ok('Configuration OK.');
+  const bundles = bundleResults
+    .filter(res => res.result.ok)
+    .map(res => res.result.value as Bundle);
+
+  const bundleErrors = bundleResults
+    .filter(res => !res.result.ok)
+    .map(res => ({
+      file: res.file,
+      error: res.result.error as BundlerError,
+    }));
+
+  const assets = results
+    .filter(r => !r.isBundle && r.isAsset)
+    .map(r => r.file);
+
+  return [bundles, assets, bundleErrors];
 }
 
 export async function handleUpload(
@@ -29,25 +46,18 @@ export async function handleUpload(
     return err(UploadError.NoFilesUploaded);
   }
 
-  for (const file of files) {
-    if (await Config.isValid(file)) {
-      const result = await handleConfigUpload(file);
-      if (!result.ok) {
-        if (files.length === 1) {
-          return err(result.error);
-        }
-        console.error(result.error);
-      }
-    } else if (await Bundle.isValid(file)) {
-      const result = await handleZipUpload(file);
-      if (!result.ok) {
-        if (files.length === 1) {
-          return err(result.error);
-        }
-        console.error(result.error);
-      }
-    }
-  }
+  const results = await Promise.all(
+    files.map(async (file: File) => ({
+      file,
+      isBundle: await Bundle.isValid(file),
+      isAsset: await Asset.isValid(file),
+    }))
+  );
 
-  return ok();
+  const [bundles, assets, errors] = await filterResults(results);
+  console.log(bundles);
+  console.log(assets);
+  console.warn(errors);
+
+  return ok("Uploaded");
 }
