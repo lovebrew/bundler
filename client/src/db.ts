@@ -1,24 +1,24 @@
-import Dexie from 'dexie';
-import EntityTable from 'dexie';
-import { x64 } from 'murmurhash3js';
+import Dexie from "dexie";
+import EntityTable from "dexie";
+import { x64 } from "murmurhash3js";
 
 interface CacheEntry {
   file: File;
   expiration: number;
 }
 
-const database = new Dexie('Bundler') as Dexie & {
+const database = new Dexie("Bundler") as Dexie & {
   cache: EntityTable<string, CacheEntry>;
 };
 
 database.version(1).stores({
-  cache: ',hash'
+  cache: ",hash",
 });
 
-database.on('ready', async () => {
+database.on("ready", async () => {
   const today = new Date().valueOf();
 
-  await database.transaction('rw', database.cache, () => {
+  await database.transaction("rw", database.cache, () => {
     database.cache
       .toCollection()
       .each((item: CacheEntry, cursor: IDBCursor) => {
@@ -44,12 +44,12 @@ async function calculateHash(file: File) {
     reader.readAsDataURL(new Blob([buffer]));
   });
 
-  const hash = x64.hash128(encoded.slice(encoded.indexOf(',') + 1));
+  const hash = x64.hash128(encoded.slice(encoded.indexOf(",") + 1));
   return hash;
 }
 
 export async function getDatabaseItem(
-  index: File | string
+  index: File | string,
 ): Promise<CacheEntry | undefined> {
   let key;
   if (index instanceof File) key = await calculateHash(index);
@@ -60,7 +60,7 @@ export async function getDatabaseItem(
 
 export async function setDatabaseItem(
   file: File,
-  keyable: File | string
+  keyable: File | string,
 ): Promise<void> {
   try {
     const item = { file, expiration: calculateExpiryDate() };

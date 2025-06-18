@@ -1,66 +1,122 @@
-import { ok, err, Result } from '@/result';
-import { BundlerError, BundleError } from '@/error';
-import { fileTypeFromBuffer } from 'file-type';
-import { Config } from '@classes/Config';
+import { BundleError } from "@/enums/error";
+import { fileTypeFromBuffer } from "file-type";
+import { Config } from "@classes/Config";
 import {
   BlobReader,
   BlobWriter,
   ZipReader,
+  TextWriter,
   Entry,
-  TextWriter
-} from '@zip.js/zip.js';
+} from "@zip.js/zip.js";
+import { Asset } from "@classes/Asset";
 
 export class Bundle {
-  private readonly IgnoreFile = '.bundleignore';
   private config: Config | undefined = undefined;
+  private reader: ZipReader<BlobReader>;
 
-  constructor(private readonly entries: Array<Entry>) {}
+  private filename: string;
 
-  async loadConfig(): Promise<Result<undefined, BundlerError>> {
-    const file = await this.readFile<string>(Config.FileName, new TextWriter());
-    if (!file) return err(BundleError.NoConfigFile);
-    const config = await Config.from(file);
-    if (!config.ok) return err(config.error);
-    this.config = config.value;
-    return ok(undefined);
+  private source: Array<File> = [];
+  private assets: Array<Asset> = [];
+  private icon: Asset | undefined = undefined;
+
+  constructor(file: File) {
+    this.reader = new ZipReader(new BlobReader(file));
+    this.filename = file.name;
   }
 
-  private getFile(filename: string): Entry | undefined {
-    return this.entries.find((entry: Entry) => entry.filename == filename);
+  public async dispose(): Promise<void> {
+    await this.reader.close();
   }
 
-  private async readFile<T>(
-    filename: string,
-    writer: BlobWriter | TextWriter
-  ): Promise<T | undefined> {
-    const entry = this.getFile(filename);
-    if (!entry) return undefined;
-    return (await entry.getData?.(writer)) as T;
+  public get name(): string {
+    return this.filename;
+  }
+
+  public getTargets(): Array<string> {
+    if (!this.config) {
+      return [];
+    }
+    return Object.values(this.config.build.targets);
+  }
+
+  public async load(): Promise<void> {
+    const entries = await this.reader.getEntries();
+    if (!entries.length) {
+      throw BundleError.EmptyZipFile;
+    }
+
+    await this.loadConfig(entries);
+    await this.loadIcon(entries);
+    await this.loadAssets(entries);
+  }
+
+  private async loadConfig(entries: Array<Entry>): Promise<void> {
+    const configEntry = entries.find((e) => e.filename === Config.Filename);
+    if (!configEntry || !configEntry.getData) {
+      throw BundleError.NoConfigFile;
+    }
+    const configText = await configEntry.getData(new TextWriter());
+    this.config = await Config.from(configText);
+  }
+
+  private async loadIcon(entries: Array<Entry>): Promise<void> {
+    if (!this.config) {
+      return;
+    }
+
+    const path = this.config.metadata.icon;
+    const entry = entries.find((e) => e.filename === path);
+    if (!entry || !entry.getData) {
+      return;
+    }
+
+    const file = new File([await entry.getData(new BlobWriter())], entry.filename);
+    this.icon = await Asset.from(file);
+  }
+
+  public get package(): boolean {
+    return this.config?.build.package ?? false;
+  }
+
+  private async loadAssets(entries: Array<Entry>): Promise<void> {
+    if (!this.config) {
+      return;
+    }
+
+    const prefix = new RegExp(`^${this.config.build.source}/`);
+
+    for (const entry of entries) {
+      let filename = entry.filename;
+      if (!entry.getData || entry.directory || !filename.match(prefix)) {
+        continue;
+      }
+      filename = filename.replace(prefix, "");
+      const file = new File([await entry.getData(new BlobWriter())], filename);
+
+      (await Asset.isValid(file))
+        ? this.assets.push(await Asset.from(file))
+        : this.source.push(file);
+    }
+  }
+
+  public get queryParams(): URLSearchParams | undefined {
+    return this.config?.toQuery();
+  }
+
+  public getAssets(): [Array<File>, Array<Asset>] {
+    return [this.source, this.assets];
+  }
+
+  public getIcon(): Asset | undefined {
+    return this.icon;
   }
 
   static async isValid(file: File): Promise<boolean> {
     const result = await fileTypeFromBuffer(await file.arrayBuffer());
-    if (!result || result.mime !== 'application/zip') {
+    if (!result || result.mime !== "application/zip") {
       return false;
     }
     return true;
-  }
-
-  static async from(file: File): Promise<Result<Bundle, BundlerError>> {
-    const zipReader = new ZipReader(new BlobReader(file));
-    const entries = await zipReader.getEntries();
-    await zipReader.close();
-
-    if (!entries || entries.length === 0) {
-      return err(BundleError.EmptyZipFile);
-    }
-
-    const bundle = new Bundle(entries);
-    const success = await bundle.loadConfig();
-
-    if (!success.ok) {
-      return err(success.error);
-    }
-    return ok(bundle);
   }
 }

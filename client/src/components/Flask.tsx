@@ -1,7 +1,7 @@
-import DropZone from '@/components/DropZone';
+import DropZone from "@/components/DropZone";
 
-import bottle from '@/assets/bottle.svg';
-import '@/styles/flask.css';
+import bottle from "@/assets/bottle.svg";
+import "@/styles/flask.css";
 
 export const Flask = () => {
   return (

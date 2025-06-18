@@ -6,6 +6,8 @@ use serde::Serialize;
 use std::io::Cursor;
 use thiserror::Error;
 
+use crate::models::target::Target;
+
 #[derive(Debug, Error)]
 pub enum TextureError {
     #[error("Unsupported texture format")]
@@ -29,17 +31,29 @@ pub enum FontError {
 }
 
 #[derive(Debug, Error)]
+pub enum IconError {
+    #[error("Invalid icon target {target:?}")]
+    InvalidTarget { target: Target },
+    #[error("Corrupted icon data")]
+    CorruptedData,
+    #[error("Could not create icon: {message}")]
+    CouldNotCreate { message: String },
+}
+
+#[derive(Debug, Error)]
 pub enum AppError {
     #[error("Texture error: {0}")]
     Texture(#[from] TextureError),
     #[error("Font error: {0}")]
     Font(#[from] FontError),
-    #[error("Missing field: {0}")]
-    MissingField(&'static str),
+    #[error("Icon error: {0}")]
+    Icon(#[from] IconError),
     #[error("Invalid format: {0}")]
     InvalidFormat(&'static str),
     #[error("Internal server error")]
     Internal,
+    #[error("Failed to execute {0}")]
+    FailedToExecute(&'static str),
 }
 
 #[derive(Serialize)]
@@ -51,10 +65,12 @@ struct ErrorResponse {
 impl<'r> Responder<'r, 'static> for AppError {
     fn respond_to(self, _: &'r rocket::Request<'_>) -> RocketResult<'static> {
         let status = match self {
-            AppError::MissingField(_) | AppError::InvalidFormat(_) => Status::BadRequest,
             AppError::Internal => Status::InternalServerError,
             AppError::Texture(_) => Status::UnprocessableEntity,
             AppError::Font(_) => Status::UnprocessableEntity,
+            AppError::Icon(_) => Status::UnprocessableEntity,
+            AppError::InvalidFormat(_) => Status::UnsupportedMediaType,
+            AppError::FailedToExecute(_) => Status::UnprocessableEntity,
         };
 
         let body = json!(ErrorResponse {

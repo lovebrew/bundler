@@ -14,7 +14,9 @@
       "@assets/*": ["./src/assets/*"],
       "@components/*": ["./src/components/*"],
       "@classes/*": ["./src/classes/*"],
-      "@styles/*": ["./src/styles/*"]
+      "@enums/*": ["./src/enums/*"],
+      "@styles/*": ["./src/styles/*"],
+      "@services/*": ["./src/services/*"]
     },
     "noUnusedLocals": true,
     "noUnusedParameters": true,

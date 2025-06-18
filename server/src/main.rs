@@ -5,6 +5,7 @@ use anyhow::Result;
 
 mod controllers;
 mod cors;
+mod logging;
 mod models;
 mod services;
 mod tools;

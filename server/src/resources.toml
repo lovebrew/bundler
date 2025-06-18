@@ -1,0 +1,14 @@
+[ctr]
+binary = "lovepotion.elf"
+icon = "icon.png"
+romfs = "files.romfs"
+
+[hac]
+binary = "lovepotion.elf"
+icon = "icon.jpg"
+romfs = "files.romfs"
+
+[cafe]
+binary = "lovepotion.elf"
+icon = "icon.png"
+romfs = "content"

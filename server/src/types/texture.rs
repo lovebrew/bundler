@@ -3,7 +3,7 @@ use std::io::Cursor;
 use std::path::Path;
 
 use crate::traits::processable::Processable;
-use crate::types::error::TextureError;
+use crate::types::apierror::TextureError;
 
 pub struct Texture;
 

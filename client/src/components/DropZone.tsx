@@ -1,17 +1,18 @@
-import { useState } from 'react';
-import { handleUpload } from '@/upload';
+import { useState } from "react";
+import { handleUpload } from "@/services/UploadService";
 
-import '@/styles/dropzone.css';
-import { toastError, toastSuccess } from './Toast';
+import "@/styles/dropzone.css";
+import { toastError, toastLoading, toastSuccess } from "@components/Toast";
+import { Response } from "@/types";
 
 const ACCEPTED_FILETYPES = [
-  '.zip',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.otf',
-  '.ttf',
-  '.toml'
+  ".zip",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".otf",
+  ".ttf",
+  ".toml",
 ];
 
 export default function DropZone() {
@@ -20,12 +21,18 @@ export default function DropZone() {
   const handleDragEnter = () => setDragActive(true);
   const handleDragLeave = () => setDragActive(false);
 
+  function downloadBlob(response: Blob): string {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(response);
+    link.download = "bundle.zip";
+    link.click();
+
+    window.URL.revokeObjectURL(link.href);
+    return "Downloaded.";
+  }
+
   async function performUpload(files: Array<File>) {
-    const result = await handleUpload(files);
-    if (!result.ok) {
-      return toastError(result.error);
-    }
-    toastSuccess(result.value);
+    toastLoading(handleUpload(files), downloadBlob, "Uploading..");
   }
 
   async function handleDrop(event: React.DragEvent<HTMLDivElement>) {
@@ -43,12 +50,12 @@ export default function DropZone() {
   }
 
   return (
-    <div className={`drop-zone-content ${isDragActive ? 'active' : ''}`}>
+    <div className={`drop-zone-content ${isDragActive ? "active" : ""}`}>
       <input
         id="file-upload"
         type="file"
         title=""
-        accept={ACCEPTED_FILETYPES.join(',')}
+        accept={ACCEPTED_FILETYPES.join(",")}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}

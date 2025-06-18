@@ -1,33 +1,33 @@
-import * as fs from 'fs';
-const BuildDirectory = 'dist';
+import * as fs from "fs";
+const BuildDirectory = "dist";
 
 async function clean() {
-  console.log('Cleaning the output directory...');
+  console.log("Cleaning the output directory...");
   fs.rmSync(BuildDirectory, { recursive: true, force: true });
 }
 
 async function build() {
-  console.log('Building the client application...');
+  console.log("Building the client application...");
 
   try {
     const result = await Bun.build({
-      entrypoints: ['src/index.html'],
+      entrypoints: ["src/index.html"],
       outdir: BuildDirectory,
-      root: 'src',
+      root: "src",
       minify: true,
       naming: {
-        asset: '[dir]/[name]-[hash].[ext]'
-      }
+        asset: "[dir]/[name]-[hash].[ext]",
+      },
     });
 
     if (result.logs.length > 0) {
-      console.warn('Build succeeded with warnings:');
+      console.warn("Build succeeded with warnings:");
       for (const message of result.logs) {
         console.warn(message);
       }
     }
   } catch (error) {
-    console.error('Build failed:', error as AggregateError);
+    console.error("Build failed:", error as AggregateError);
   }
 }
 
@@ -41,6 +41,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('An error occurred during the build process:', error);
+  console.error("An error occurred during the build process:", error);
   process.exit(1);
 });

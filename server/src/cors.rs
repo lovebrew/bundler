@@ -7,7 +7,7 @@ use rocket::{
 pub struct Cors;
 
 const ALLOWED_ORIGINS: [&str; 3] = [
-    "http://localhost:5000",
+    "http://localhost:3000",
     "https://lovebrew.github.io",
     "https://bundle.lovebrew.org",
 ];

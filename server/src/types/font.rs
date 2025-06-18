@@ -1,9 +1,9 @@
-use anyhow::anyhow;
 use ttf_parser::Face;
 
 use std::path::Path;
 
-use crate::{traits::processable::Processable, types::error::FontError};
+use crate::types::apierror::AppError;
+use crate::{traits::processable::Processable, types::apierror::FontError};
 
 pub struct Font;
 
@@ -33,12 +33,12 @@ impl Processable for Font {
         match command.output() {
             Ok(output) => {
                 if !output.status.success() {
-                    return Err(anyhow!("{}", String::from_utf8_lossy(&output.stderr)));
+                    return Err(AppError::FailedToExecute(EXECUTABLE).into());
                 }
                 let bytes = std::fs::read(out_file)?;
                 Ok(("bcfnt", bytes))
             }
-            Err(e) => Err(anyhow::anyhow!("Failed to execute {}: {}", EXECUTABLE, e)),
+            Err(_) => Err(AppError::FailedToExecute(EXECUTABLE).into()),
         }
     }
 }

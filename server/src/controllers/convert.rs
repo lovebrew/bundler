@@ -1,23 +1,27 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
 use log::error;
 use rocket::form::{Form, FromForm};
 use rocket::fs::TempFile;
 use rocket::futures::future::join_all;
-use rocket::http::{ContentType, Status};
+use rocket::http::Status;
 use rocket::tokio::fs;
 use rocket::tokio::io::AsyncReadExt;
 
+use crate::logging::message::Message;
+use crate::logging::tracefile::Tracefile;
 use crate::models::response::Response;
 use crate::traits::processable::Processable;
-use crate::types::error::AppError;
+use crate::types::apierror::AppError;
 use crate::types::font::Font;
 use crate::types::texture::Texture;
 use crate::types::zipfile::ZipFile;
-use crate::utilities::tracefile::Tracefile;
 
 #[derive(FromForm)]
 pub struct FormData<'f> {
     files: Vec<TempFile<'f>>,
+    paths: Vec<String>,
 }
 
 async fn read_form_file(file: &TempFile<'_>) -> Result<Vec<u8>, AppError> {
@@ -63,18 +67,23 @@ pub async fn convert(mut form: Form<FormData<'_>>) -> Result<Response, AppError>
     let mut zip_file = ZipFile::new();
     let trace_file = Tracefile::new();
 
-    let tasks = form.files.iter_mut().map(|file| {
-        let filename = file.name().map(str::to_string);
+    let FormData { files, paths } = &mut *form;
+    let tasks = files.iter_mut().zip(paths).map(|(file, rel_path_str)| {
+        let rel_path = PathBuf::from(&*rel_path_str);
+        let filename = match file.name() {
+            Some(name) => rel_path.join(name).to_str().map(str::to_string),
+            None => None,
+        };
 
         let dir_path = dir_path.clone();
         let trace = trace_file.clone();
 
         async move {
-            let name = match &filename {
+            let name = match filename {
                 Some(name) => name.clone(),
                 None => return None,
             };
-            trace.info(format!("Processing file '{name}'"));
+            trace.info(Message::Processing(&name)).await;
 
             let buffer = match read_form_file(file).await {
                 Ok(buffer) => buffer,
@@ -86,8 +95,8 @@ pub async fn convert(mut form: Form<FormData<'_>>) -> Result<Response, AppError>
 
             let asset = match validate_form_file(buffer) {
                 Ok(asset) => asset,
-                Err(e) => {
-                    trace.error(format!("Failed to process file '{name}': {e}"));
+                Err(reason) => {
+                    trace.error(Message::FailedToProcess(&name, reason)).await;
                     return None;
                 }
             };
@@ -107,8 +116,8 @@ pub async fn convert(mut form: Form<FormData<'_>>) -> Result<Response, AppError>
 
             let (ext, bytes) = match asset.process(&filepath) {
                 Ok(data) => data,
-                Err(e) => {
-                    trace.error(format!("Cannot convert {filepath:?}: {e}"));
+                Err(_) => {
+                    trace.error(Message::CannotConvert(&name)).await;
                     return None;
                 }
             };
@@ -116,40 +125,33 @@ pub async fn convert(mut form: Form<FormData<'_>>) -> Result<Response, AppError>
             let rel_path = filepath.strip_prefix(&dir_path).ok()?.with_extension(ext);
             let out_file = rel_path.to_string_lossy().to_string();
 
-            trace.info(format!("Converted {name} -> {out_file:?}"));
+            trace.info(Message::Converted(&name, &out_file)).await;
             Some((out_file, bytes))
         }
     });
 
-    let results = join_all(tasks).await;
-    let partial = results.iter().any(|v| v.is_none());
+    let results: Vec<Option<(String, Vec<u8>)>> = join_all(tasks).await;
 
-    if partial {
-        let error_count = results.iter().filter(|v| v.is_none()).count();
-        trace_file.info(format!("Conversion finished with {error_count} errors."));
+    let (oks, errs): (Vec<_>, Vec<_>) = results.into_iter().partition(|res| res.is_some());
+    let (is_partial, count) = (!errs.is_empty(), errs.len());
+
+    if is_partial {
+        trace_file.info(Message::FinishedWithErrors(count)).await;
     }
 
-    for result in results.iter().flatten() {
-        let (out_file, bytes) = result;
-        zip_file.add_file(out_file, bytes).map_err(|e| {
-            error!("Cannot add {out_file} to zip file: {e}");
-            AppError::Internal
-        })?;
+    for (out_file, bytes) in oks.into_iter().flatten() {
+        zip_file.try_add_file(&out_file, &bytes)?;
     }
 
-    if let Ok(bytes) = trace_file.bytes() {
-        zip_file.add_file("convert.log", &bytes).map_err(|e| {
-            error!("Cannot add convert.log: {e}");
-            AppError::Internal
-        })?;
+    let status = if is_partial {
+        Status::PartialContent
+    } else {
+        Status::Ok
+    };
+
+    if let Ok(bytes) = trace_file.bytes().await {
+        zip_file.try_add_file("convert.log", &bytes)?;
     }
 
-    Ok(Response::with_status(
-        zip_file,
-        if partial {
-            Status::PartialContent
-        } else {
-            Status::Ok
-        },
-    ))
+    Ok(Response::with_status(zip_file, status))
 }

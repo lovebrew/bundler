@@ -6,6 +6,7 @@ use zip::{CompressionMethod, ZipWriter, write::FileOptions};
 pub struct ZipFile<'a> {
     writer: ZipWriter<Cursor<Vec<u8>>>,
     compression: FileOptions<'a, ()>,
+    file_count: usize,
 }
 
 impl<'a> ZipFile<'a> {
@@ -19,13 +20,29 @@ impl<'a> ZipFile<'a> {
         Self {
             writer,
             compression,
+            file_count: 0,
         }
     }
 
-    pub fn add_file(&mut self, name: &str, data: &[u8]) -> Result<()> {
+    fn add_file(&mut self, name: &str, bytes: &[u8]) -> Result<()> {
         self.writer.start_file(name, self.compression)?;
-        self.writer.write_all(data)?;
+        self.writer.write_all(bytes)?;
+        self.file_count += 1;
         Ok(())
+    }
+
+    pub fn try_add_file(&mut self, name: &str, bytes: &[u8]) -> Result<(), AppError> {
+        if bytes.is_empty() {
+            return Ok(());
+        }
+        self.add_file(name, bytes).map_err(|e| {
+            error!("Cannot add {name} to zip file: {e}.");
+            AppError::Internal
+        })
+    }
+
+    pub fn file_count(&self) -> usize {
+        self.file_count
     }
 
     pub fn finish(self) -> Result<Vec<u8>> {
@@ -37,7 +54,7 @@ impl<'a> ZipFile<'a> {
 use rocket::http::ContentType;
 use rocket::response::Responder;
 
-use crate::types::error::AppError;
+use crate::types::apierror::AppError;
 
 impl<'a, 'r, 'o: 'r> Responder<'r, 'o> for ZipFile<'a> {
     fn respond_to(self, _request: &'r rocket::Request<'_>) -> rocket::response::Result<'o> {

@@ -1,34 +1,41 @@
-import { Link, Spacer } from '@/components/Link';
-import '@/styles/footer.css';
+import { Link, Spacer } from "@/components/Link";
+import "@/styles/footer.css";
 
-const version = require('../../package.json').version;
+const version = require("../../package.json").version;
 
 export const Footer = () => {
   const links = [
     {
-      icon: 'fa-solid fa-book-open',
-      href: 'https://lovebrew.org/bundler/overview',
-      text: 'Wiki'
+      icon: "fa-solid fa-book-open",
+      href: "https://lovebrew.org/bundler/overview",
+      text: "Wiki",
     },
     {
-      icon: 'fa-regular fa-copyright',
+      icon: "fa-regular fa-copyright",
       href: undefined,
-      text: `LÖVEBrew`
+      text: `LÖVEBrew`,
     },
     {
-      icon: 'fa-solid fa-tag',
+      icon: "fa-solid fa-tag",
       href: undefined,
-      text: `${version}`
-    }
+      text: `${version}`,
+    },
   ];
 
   return (
     <footer className="footer">
       {links.map((link, index) => (
-        <>
-          <Link icon={link.icon} href={link.href} text={link.text} />
-          {index < links.length - 1 && <Spacer />}
-        </>
+        <div key={index}>
+          <Link
+            key={link.text}
+            icon={link.icon}
+            href={link.href}
+            text={link.text}
+          />
+          {index < links.length - 1 && (
+            <Spacer key={`spacer-for-${link.text}`} />
+          )}
+        </div>
       ))}
     </footer>
   );

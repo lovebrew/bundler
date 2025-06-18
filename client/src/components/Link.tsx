@@ -1,6 +1,6 @@
-import '@/styles/link.css';
+import "@/styles/link.css";
 
-const Spacer = () => <span className="spacer">•</span>;
+const Spacer = () => <span className="spacer">&#x2022;</span>;
 
 type LinkProps = {
   icon: string;
