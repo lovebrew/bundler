@@ -7,7 +7,6 @@ use rocket::fs::TempFile;
 use rocket::futures::future::join_all;
 use rocket::http::Status;
 use rocket::tokio::fs;
-use rocket::tokio::io::AsyncReadExt;
 
 use crate::logging::message::Message;
 use crate::logging::tracefile::Tracefile;
@@ -17,28 +16,12 @@ use crate::types::apierror::AppError;
 use crate::types::font::Font;
 use crate::types::texture::Texture;
 use crate::types::zipfile::ZipFile;
+use crate::utilities::form;
 
 #[derive(FromForm)]
 pub struct FormData<'f> {
     files: Vec<TempFile<'f>>,
     paths: Vec<String>,
-}
-
-async fn read_form_file(file: &TempFile<'_>) -> Result<Vec<u8>, AppError> {
-    let mut buffer = vec![];
-    let name = match &file.name() {
-        Some(name) => name.to_string(),
-        None => return Err(AppError::Internal),
-    };
-    let mut file = file.open().await.map_err(|e| {
-        error!("Failed to open file: {name} ({e:?})");
-        AppError::Internal
-    })?;
-    file.read_to_end(&mut buffer).await.map_err(|e| {
-        error!("Failed to read file: {name} ({e:?})");
-        AppError::Internal
-    })?;
-    Ok(buffer)
 }
 
 fn validate_form_file(buffer: Vec<u8>) -> Result<Box<dyn Processable + Send>, AppError> {
@@ -85,7 +68,7 @@ pub async fn convert(mut form: Form<FormData<'_>>) -> Result<Response, AppError>
             };
             trace.info(Message::Processing(&name)).await;
 
-            let buffer = match read_form_file(file).await {
+            let buffer = match form::read_file(file).await {
                 Ok(buffer) => buffer,
                 Err(e) => {
                     error!("Failed to read file {name}: {e}");
@@ -130,7 +113,7 @@ pub async fn convert(mut form: Form<FormData<'_>>) -> Result<Response, AppError>
         }
     });
 
-    let results: Vec<Option<(String, Vec<u8>)>> = join_all(tasks).await;
+    let results: Vec<_> = join_all(tasks).await;
 
     let (oks, errs): (Vec<_>, Vec<_>) = results.into_iter().partition(|res| res.is_some());
     let (is_partial, count) = (!errs.is_empty(), errs.len());

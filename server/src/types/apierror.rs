@@ -10,30 +10,20 @@ use crate::models::target::Target;
 
 #[derive(Debug, Error)]
 pub enum TextureError {
-    #[error("Unsupported texture format")]
-    UnsupportedFormat,
     #[error("Corrupted texture data")]
     CorruptedData,
-    #[error("Failed to parse texture")]
-    ParseFailure,
     #[error("Texture dimensions out of bounds: {width}x{height}")]
     OutOfBounds { width: u32, height: u32 },
 }
 
 #[derive(Debug, Error)]
 pub enum FontError {
-    #[error("Unsupported font format {format} for '{name}'")]
-    UnsupportedFormat { format: String, name: String },
     #[error("Corrupted font data")]
     CorruptedData,
-    #[error("Failed to parse font")]
-    ParseFailure,
 }
 
 #[derive(Debug, Error)]
 pub enum IconError {
-    #[error("Invalid icon target {target:?}")]
-    InvalidTarget { target: Target },
     #[error("Corrupted icon data")]
     CorruptedData,
     #[error("Could not create icon: {message}")]
