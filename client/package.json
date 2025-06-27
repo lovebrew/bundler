@@ -9,6 +9,7 @@
     "defaults and fully supports es6-module",
     "maintained node versions"
   ],
+  "maintenanceMode": true,
   "apiBase": {
     "development": "http://localhost:5000",
     "production": "https://api.bundle.lovebrew.org"
