@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LÖVEBrew Bundler Game Bundle Configuration",
+  "description": "Schema for bundle.toml, the configuration file used by the bundler from the LÖVEBrew organization.",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "description": "The metadata information of a game.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "description": "The display title of the game.",
+          "type": "string"
+        },
+        "author": {
+          "description": "Name of the game developer or team.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description of the game.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Version of the game.",
+          "type": "string"
+        },
+        "icon": {
+          "description": "Path in the bundle to the icon to use.",
+          "type": "string"
+        },
+        "required": [
+          "title",
+          "author",
+          "description",
+          "version"
+        ]
+      }
+    },
+    "build": {
+      "description": "How to build the game",
+      "type": "object",
+      "properties": {
+        "targets": {
+          "description": "List of platforms to compile for.",
+          "type": "array",
+          "items": {
+            "enum": [
+              "ctr",
+              "hac",
+              "cafe"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true
+        },
+        "source": {
+          "description": "Path of the folder containing game files.",
+          "type": "string"
+        },
+        "package": {
+          "description": "Whether to package final assets into a binary or not.",
+          "type": "boolean"
+        },
+        "required": [
+          "targets",
+          "source",
+          "package"
+        ]
+      }
+    },
+    "required": [
+      "metadata",
+      "build"
+    ]
+  }
+}
