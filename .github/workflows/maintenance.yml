@@ -1,0 +1,30 @@
+name: Toggle Maintenance
+
+# Trigger manually from GitHub UI
+on:
+    workflow_dispatch:
+        inputs:
+            maintenance:
+                description: "Enable maintenance? true or false"
+                required: true
+                default: "true"
+
+jobs:
+    update-config:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Update config.json in gh-pages
+              uses: peter-evans/create-or-update-file@v4
+              with:
+                  repository: ${{ github.repository }}
+                  branch: gh-pages
+                  file-path: config.json
+                  commit-message: "Toggle maintenance = ${{ github.event.inputs.maintenance }}"
+                  content: |
+                      {
+                        "maintenance": ${{ github.event.inputs.maintenance }},
+                        "message": "Toggled by workflow"
+                      }
