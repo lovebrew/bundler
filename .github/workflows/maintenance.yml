@@ -17,14 +17,6 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Update config.json in gh-pages
-              uses: peter-evans/create-or-update-file@v4
-              with:
-                  repository: ${{ github.repository }}
-                  branch: gh-pages
-                  file-path: config.json
-                  commit-message: "Toggle maintenance = ${{ github.event.inputs.maintenance }}"
-                  content: |
-                      {
-                        "maintenance": ${{ github.event.inputs.maintenance }},
-                        "message": "Toggled by workflow"
-                      }
+              run: |
+                  touch config.json
+                  echo '{"maintenance": ${{ github.event.inputs.maintenance }}, "message": "Toggled by workflow"}' > config.json
