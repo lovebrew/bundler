@@ -19,7 +19,7 @@ async function build() {
         asset: "[dir]/[name]-[hash].[ext]",
       },
     });
-
+    fs.copyFileSync("CNAME", "dist/CNAME");
     if (result.logs.length > 0) {
       console.warn("Build succeeded with warnings:");
       for (const message of result.logs) {
