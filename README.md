@@ -29,7 +29,6 @@ A single-page web application that simplifies the process of converting assets a
 2. Install client dependencies:
 
    ```bash
-   cd client
    bun install
    ```
 
@@ -41,7 +40,7 @@ A single-page web application that simplifies the process of converting assets a
 
 4. Run the server ([repo here](https://github.com/lovebrew/bundler-api)):
    ```bash
-   cd ../server
+   cd ../bundler-api
    cargo run
    ```
 
