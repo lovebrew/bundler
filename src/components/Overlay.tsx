@@ -1,5 +1,6 @@
 import "@/styles/overlay.css";
 import { useEffect, useState } from "react";
+import cfg from "@/assets/config.json";
 
 export const Overlay = () => {
     const [maintenance, setMaintenance] = useState<boolean | null>(null);
@@ -7,20 +8,15 @@ export const Overlay = () => {
     useEffect(() => {
         async function fetchConfig() {
             try {
-                const res = await fetch("./config.json", { cache: "no-cache" });
-                if (!res.ok) throw new Error("Failed to fetch config");
-                const cfg = await res.json();
                 setMaintenance(!!cfg.maintenance);
             } catch (err) {
                 console.error("Error loading config:", err);
                 setMaintenance(false); // default to false on error
             }
         }
-
         fetchConfig();
     }, []);
 
-    // While loading, don't show anything
     if (maintenance === null || !maintenance) return null;
 
     return (
