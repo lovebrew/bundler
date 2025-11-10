@@ -1,4 +1,3 @@
-
 # Bundler
 
 A single-page web application that simplifies the process of converting assets and building homebrew executable files for the Nintendo 3DS, Switch and Wii U. The application offers drag-and-drop functionality for multiple files, seamless backend integration, and user-friendly feedback mechanisms.
@@ -16,36 +15,32 @@ A single-page web application that simplifies the process of converting assets a
 
 ### Prerequisites
 
-- [Rust](https://www.rust-lang.org/)
-- [npm](https://www.npmjs.com/)
-- [devkitPro pacman](https://devkitpro.org/wiki/devkitPro_pacman) and the following packages:
-  - `tex3ds` for 3DS asset conversion
-  - `3dstools` for building 3DSX binaries
-  - `switch-tools` for building NRO binaries
-  - `wut-tools` for building WUHB binaries
+- [bun](https://bun.com/docs)
 
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd bundler
    ```
 
 2. Install client dependencies:
+
    ```bash
-   cd client
    bun install
    ```
 
 3. Build the client:
+
    ```bash
    bun run build
    ```
 
-4. Run the server:
+4. Run the server ([repo here](https://github.com/lovebrew/bundler-api)):
    ```bash
-   cd ../server
+   cd ../bundler-api
    cargo run
    ```
 
