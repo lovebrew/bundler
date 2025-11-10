@@ -20,6 +20,7 @@ async function build() {
       },
     });
     fs.copyFileSync("CNAME", "dist/CNAME");
+    fs.copyFileSync("config.json", "dist/config.json");
     if (result.logs.length > 0) {
       console.warn("Build succeeded with warnings:");
       for (const message of result.logs) {
