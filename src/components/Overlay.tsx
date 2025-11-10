@@ -1,26 +1,42 @@
 import "@/styles/overlay.css";
+import "@/styles/loader.css"
+import useBundlerAPIStatus from "@/hooks/useBundlerAPIStatus";
 import { useEffect, useState } from "react";
-import cfg from "@/assets/config.json";
+
+type LoaderProps = {
+    hidden?: boolean
+}
+const Loader = ({hidden}:LoaderProps) => (
+    <div className="loader-containter">
+        <span className={`loader ${hidden ? '':'show'}`}></span>
+    </div>
+)
 
 export const Overlay = () => {
-    const [maintenance, setMaintenance] = useState<boolean | null>(null);
-
-    useEffect(() => {
-        async function fetchConfig() {
-            try {
-                setMaintenance(!!cfg.maintenance);
-            } catch (err) {
-                console.error("Error loading config:", err);
-                setMaintenance(false); // default to false on error
+    const {online, loading} = useBundlerAPIStatus();
+    
+    const [maintenance, setMaintenance] = useState(false);
+    
+    useEffect(()=>{    
+        const fetchData = async () => {
+        try {
+            const res = await fetch(`/config.json?cachebust=${Date.now()}`);
+            if (!res.ok) {
+                throw new Error("HTTP status code: " + res.status);
             }
+            const cfg = await res.json();
+            setMaintenance(cfg.maintenance)
+        } catch (error) {
+            console.error(error);
+            setMaintenance(false)
         }
-        fetchConfig();
-    }, []);
-
-    if (maintenance === null || !maintenance) return null;
+        };
+        fetchData();
+    })
 
     return (
-        <div className="overlay">
+        <>
+        {(!online || maintenance) && <div className="overlay">
             <div className="overlay-content">
                 <h1>Hang Tight — We're Fixing Things</h1>
                 <p>
@@ -38,6 +54,8 @@ export const Overlay = () => {
                     .
                 </p>
             </div>
-        </div>
+        </div>}
+        <Loader hidden={!loading} />
+        </>
     );
 };
