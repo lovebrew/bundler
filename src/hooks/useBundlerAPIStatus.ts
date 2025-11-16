@@ -1,7 +1,7 @@
 import { API_URL } from "@/config";
 import { useEffect, useState } from "react";
 
-const healtCheckURL = API_URL + "/health";
+const healthCheckURL = `${API_URL}/health`;
 
 export default function useBundlerAPIStatus() {
   const [online, setOnline] = useState(true);
@@ -11,7 +11,7 @@ export default function useBundlerAPIStatus() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await fetch(healtCheckURL);
+        const res = await fetch(healthCheckURL);
         if (!res.ok) {
           throw new Error("HTTP status code: " + res.status);
         } else if (!cancelled) setOnline(true);
@@ -25,6 +25,6 @@ export default function useBundlerAPIStatus() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  });
   return { online, loading };
 }

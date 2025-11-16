@@ -31,7 +31,7 @@
         "dexie": "^4.0.11",
         "file-type": "^21.0.0",
         "gh-pages": "^6.3.0",
-        "gray-matter": "^4.0.3",
+        "gray-matter": "^2.0.1",
         "howler": "^2.2.4",
         "ignore": "^7.0.5",
         "murmurhash3js": "^3.0.1",
