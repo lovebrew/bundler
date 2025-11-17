@@ -1,5 +1,6 @@
 import * as fs from "fs";
 const BuildDirectory = "dist";
+const PublicFiles = ["CNAME", "config.json"];
 
 async function clean() {
   console.log("Cleaning the output directory...");
@@ -8,7 +9,6 @@ async function clean() {
 
 async function build() {
   console.log("Building the client application...");
-
   try {
     const result = await Bun.build({
       entrypoints: ["src/index.html"],
@@ -19,8 +19,10 @@ async function build() {
         asset: "[dir]/[name]-[hash].[ext]",
       },
     });
-    fs.copyFileSync("CNAME", "dist/CNAME");
-    fs.copyFileSync("config.json", "dist/config.json");
+    for (const file of PublicFiles) {
+      console.log(`Copying public file ${file} to ${BuildDirectory}/${file}`)
+      fs.copyFileSync(file, `${BuildDirectory}/${file}`);
+    }
     if (result.logs.length > 0) {
       console.warn("Build succeeded with warnings:");
       for (const message of result.logs) {
@@ -34,9 +36,10 @@ async function build() {
 
 async function main() {
   const StartTime = performance.now();
-  if (fs.existsSync(BuildDirectory)) await clean();
+  if (fs.existsSync(BuildDirectory)) {
+    await clean();
+  }
   await build();
-
   const EndTime = performance.now();
   console.log(`Build completed in ${(EndTime - StartTime).toFixed(2)} ms`);
 }
