@@ -3,6 +3,7 @@ import { Overlay } from "@/components/Overlay";
 
 import { useMaintenance } from "@/hooks/useMaintenance";
 import useBundlerAPIStatus from "@/hooks/useBundlerAPIStatus";
+import { messages } from "@/messages";
 
 interface Props {
     children: React.ReactNode;
@@ -19,11 +20,6 @@ const Loader = ({ hidden }: LoaderProps) => (
     </div>
 );
 
-const maintenanceText =
-    "This instance is temporarily offline for scheduled maintenance.";
-const apiStatusText =
-    "The bundler API is currently unavailable. Please try again later.";
-
 export const MaintenanceGate = ({ children }: Props) => {
     const maintenance = useMaintenance();
     const { online, loading } = useBundlerAPIStatus();
@@ -35,5 +31,7 @@ export const MaintenanceGate = ({ children }: Props) => {
     if (!maintenance && online) {
         return <>{children}</>;
     }
-    return <Overlay text={maintenance ? maintenanceText : apiStatusText} />;
+
+    const message = maintenance ? messages.maintenance : messages.apiDown;
+    return <Overlay text={message} />;
 };
