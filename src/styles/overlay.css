@@ -11,9 +11,18 @@
     font-family: "Nunito", sans-serif;
 }
 
+.loader {
+    text-align: center;
+    width: 100%;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    text-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4);
+}
+
 .maintenance-logo {
-    width: 128px;
-    height: 128px;
+    width: 96px;
+    height: 96px;
     object-fit: contain;
     margin: 0 auto 1.5rem auto;
     display: block;
