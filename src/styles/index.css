@@ -1,28 +1,28 @@
 @import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap");
 
 :root {
-  color-scheme: light dark;
-  --spacing: 0.25rem;
+    color-scheme: light dark;
+    --spacing: 0.25rem;
 
-  --light-theme: #dbdad9;
-  --dark-theme: #242526;
+    --light-theme: #dbdad9;
+    --dark-theme: #242526;
 }
 
 body {
-  margin: 0;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-  position: fixed;
+    margin: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    position: fixed;
 }
 
 #root {
-  width: 100%;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
+    width: 100%;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
 
-  background-image: linear-gradient(-45deg, #27aae1 50%, #e74a99 50%);
-  background-size: cover;
-  background-position: center center;
+    background-image: linear-gradient(-45deg, #27aae1 50%, #e74a99 50%);
+    background-size: cover;
+    background-position: center center;
 }
