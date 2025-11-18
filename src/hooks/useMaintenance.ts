@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 export function useMaintenance() {
-    const [maintenance, setMaintenance] = useState(false); // null = loading
+    const [maintenance, setMaintenance] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
