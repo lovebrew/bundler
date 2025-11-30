@@ -1,0 +1,76 @@
+.maintenance-container {
+  position: fixed;
+  inset: 0;
+  background: whitesmoke;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 2;
+  font-family: 'Nunito', sans-serif;
+}
+
+.maintenance-box {
+  animation: fadeUp 0.4s ease-out;
+}
+
+.maintenance-logo {
+  width: clamp(64px, 8vw, 128px);
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto 1.5rem auto;
+  display: block;
+  animation: wobble 1s ease-out 0s 1;
+}
+
+.maintenance-box {
+  width: 100%;
+  max-width: clamp(420px, 40vw, 780px);
+  padding: clamp(1rem, 2.5vw, 2.5rem);
+  border-radius: 12px;
+}
+
+.maintenance-title {
+  font-size: clamp(1.4rem, 3.2vw, 2.5rem);
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.maintenance-text {
+  font-size: clamp(0.95rem, 1.1vw, 1.2rem);
+  line-height: 1.5;
+  color: #444;
+  margin-bottom: 1rem;
+}
+
+.maintenance-button {
+  display: inline-block;
+  background: royalblue;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: clamp(0.95rem, 1vw, 1.05rem);
+  transition: background 0.2s ease-in-out;
+}
+
+.maintenance-button:hover {
+  background: cornflowerblue;
+}
+
+/* Optional subtle fade-in animation */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.maintenance-box {
+  animation: fadeUp 0.4s ease-out;
+}

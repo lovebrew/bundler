@@ -28,12 +28,7 @@
           "description": "Path in the bundle to the icon to use.",
           "type": "string"
         },
-        "required": [
-          "title",
-          "author",
-          "description",
-          "version"
-        ]
+        "required": ["title", "author", "description", "version"]
       }
     },
     "build": {
@@ -44,11 +39,7 @@
           "description": "List of platforms to compile for.",
           "type": "array",
           "items": {
-            "enum": [
-              "ctr",
-              "hac",
-              "cafe"
-            ]
+            "enum": ["ctr", "hac", "cafe"]
           },
           "minItems": 1,
           "maxItems": 3,
@@ -58,20 +49,9 @@
           "description": "Path of the folder containing game files.",
           "type": "string"
         },
-        "package": {
-          "description": "Whether to package final assets into a binary or not.",
-          "type": "boolean"
-        },
-        "required": [
-          "targets",
-          "source",
-          "package"
-        ]
+        "required": ["targets", "source"]
       }
     },
-    "required": [
-      "metadata",
-      "build"
-    ]
+    "required": ["metadata", "build"]
   }
 }

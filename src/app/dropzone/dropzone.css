@@ -1,0 +1,13 @@
+#dropzone {
+  position: absolute;
+  inset: 1% 0.5% 1% 0.5%;
+
+  border-radius: 0.5rem;
+  border: 0.25rem dashed rgba(0, 0, 0, 0);
+  cursor: pointer;
+  transition: border-color 0.5s ease-in-out;
+}
+
+#dropzone.dragover {
+  border-color: rgba(0, 0, 0, 1);
+}

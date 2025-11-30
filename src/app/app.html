@@ -1,0 +1,16 @@
+@if(ms.enabled){<maintenance></maintenance>}
+<main id="root">
+  <ngx-sonner-toaster
+    position="top-right"
+    [toastOptions]="{
+      classes: {
+        success: 'toast-success',
+        error: 'toast-error',
+        warning: 'toast-warning',
+        loading: 'toast-loading',
+      }
+    }"
+  />
+  <flask></flask>
+  <dropzone></dropzone>
+</main>
