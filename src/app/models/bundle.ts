@@ -10,36 +10,36 @@ export interface BundleFiles {
 }
 
 export class Bundle {
-  #reader: ZipReader<BlobReader>;
-  #config: Config | undefined = undefined;
+  private reader: ZipReader<BlobReader>;
+  private config: Config | undefined = undefined;
 
-  #assets: Array<Asset> = [];
-  #source: Array<File> = [];
-  #icon: File | undefined = undefined;
+  private assets: Array<Asset> = [];
+  private source: Array<File> = [];
+  private icon: File | undefined = undefined;
 
   constructor(file: File) {
-    this.#reader = new ZipReader(new BlobReader(file));
+    this.reader = new ZipReader(new BlobReader(file));
   }
 
   dispose(): void {
-    this.#reader.close();
+    this.reader.close();
   }
 
   async load(): Promise<void> {
-    const entries = await this.#reader.getEntries();
+    const entries = await this.reader.getEntries();
     if (!entries.length) throw new Error('No entries found');
 
     const config = entries.find((e) => e.filename === Config.Filename);
     if (!config || config.directory) throw new Error('Config file not found');
-    this.#config = new Config(await config.getData(new TextWriter()));
+    this.config = new Config(await config.getData(new TextWriter()));
 
-    const icon = entries.find((e) => e.filename === this.#config?.metadata.icon);
+    const icon = entries.find((e) => e.filename === this.config?.metadata.icon);
     if (icon && !icon.directory) {
       const blob = await icon.getData(new BlobWriter());
-      this.#icon = new File([blob], icon.filename);
+      this.icon = new File([blob], icon.filename);
     }
 
-    const prefix = `${this.#config.build.source}/`;
+    const prefix = `${this.config.build.source}/`;
     const files = entries.filter((e) => e.filename.startsWith(prefix));
     if (!files.length) throw new Error('No source files found');
 
@@ -50,9 +50,9 @@ export class Bundle {
       const file = new File([blob], entry.filename.replace(prefix, ''));
 
       if (await Asset.isValid(file)) {
-        this.#assets.push(await Asset.from(file));
+        this.assets.push(await Asset.from(file));
       } else {
-        this.#source.push(file);
+        this.source.push(file);
       }
     });
 
@@ -60,15 +60,15 @@ export class Bundle {
   }
 
   getConfig(): Config | undefined {
-    return this.#config;
+    return this.config;
   }
 
   get files(): BundleFiles {
-    return { source: this.#source, assets: this.#assets };
+    return { source: this.source, assets: this.assets };
   }
 
-  get icon(): File | undefined {
-    return this.#icon;
+  get iconFile(): File | undefined {
+    return this.icon;
   }
 
   static async isValid(file: File): Promise<boolean> {

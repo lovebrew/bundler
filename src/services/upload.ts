@@ -25,7 +25,7 @@ export class UploadService {
         await bundle.load();
         const config = bundle.getConfig();
         if (!config) throw new Error('Bundle config is invalid.');
-        data = await this.api.compile(bundle.files, config, bundle.icon);
+        data = await this.api.compile(bundle.files, config, bundle.iconFile);
       });
       await Promise.all(promises);
     } else {

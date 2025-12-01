@@ -13,14 +13,14 @@ export type CacheEntry = {
   providedIn: 'root',
 })
 export class IndexedDbService extends Dexie {
-  #cache!: Dexie.Table<CacheEntry, string>;
+  private cache!: Dexie.Table<CacheEntry, string>;
 
   constructor() {
     super('Bundler');
     this.version(1).stores({
       cache: ',timestamp',
     });
-    this.#cache = this.table('cache');
+    this.cache = this.table('cache');
     this.on('ready', async () => {
       await this.cleanup(7).catch((e) => console.warn('IndexedDbService cleanup failed', e));
     });
@@ -33,7 +33,7 @@ export class IndexedDbService extends Dexie {
 
   private async cleanup(days: number) {
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-    await this.#cache.where('timestamp').below(cutoff).delete();
+    await this.cache.where('timestamp').below(cutoff).delete();
   }
 
   basename(filepath: string): string {
@@ -43,7 +43,7 @@ export class IndexedDbService extends Dexie {
   async get(key: Blob | string, filepath: string): Promise<File | undefined> {
     if (!key) return undefined;
     const filehash = await this.hash(key);
-    const entry = await this.#cache.get(filehash);
+    const entry = await this.cache.get(filehash);
     if (!entry) return undefined;
     return new File([entry.blob], filepath);
   }
@@ -53,6 +53,6 @@ export class IndexedDbService extends Dexie {
     const timestamp = Date.now();
     const hash = await this.hash(key);
     const name = this.basename(filepath);
-    await this.#cache.put({ blob, name, timestamp }, hash);
+    await this.cache.put({ blob, name, timestamp }, hash);
   }
 }
