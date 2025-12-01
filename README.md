@@ -23,6 +23,8 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:3000/`. The application will automatically reload whenever you modify any of the source files.
 
+For full functionality, run the API server ([repo here](https://github.com/lovebrew/bundler-api)). This will allow for asset conversion and homebrew binary compilation.
+
 ## Building
 
 To build the project run:
@@ -32,8 +34,7 @@ ng build
 ```
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-
+   
 ## Contributing
 
 Contributions are welcome! Please submit a pull request or file an issue if you have suggestions or bug reports.
