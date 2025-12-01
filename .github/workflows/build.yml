@@ -35,7 +35,6 @@ jobs:
       - name: Build
         run: ng build
 
-  deploy:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
