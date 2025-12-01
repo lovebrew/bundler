@@ -5,8 +5,7 @@ import { MaintenanceService } from '@/services/maintenance';
   selector: 'maintenance',
   imports: [],
   templateUrl: 'maintenance.html',
-  styleUrl: 'maintenance.css',
-  standalone: true,
+  styleUrl: 'maintenance.css'
 })
 export class Maintenance {
   ms = inject(MaintenanceService);
