@@ -1,0 +1,33 @@
+.flask-container {
+  height: 100vh;
+  display: flex;
+}
+
+.flask-image {
+  filter: drop-shadow(8px 8px 4px rgba(0, 0, 0, 0.25));
+  animation: wobble 1s ease-out 0s 1;
+}
+
+@keyframes wobble {
+  0% {
+    opacity: 0;
+    transform: rotate(30deg);
+  }
+
+  18% {
+    transform: rotate(-20deg);
+  }
+
+  50% {
+    transform: rotate(15deg);
+  }
+
+  68% {
+    transform: rotate(-5deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+}

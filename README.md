@@ -11,39 +11,30 @@ A single-page web application that simplifies the process of converting assets a
 - **User Feedback**: Displays toast messages for success or errors during the process.
 - **Download Handling**: Allows users to download files and verify their contents.
 
-## Deployment
+This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.0.
 
-### Prerequisites
+## Development server
 
-- [bun](https://bun.com/docs)
+To start a local development server, run:
 
-### Installation
+```bash
+ng serve
+```
 
-1. Clone the repository:
+Once the server is running, open your browser and navigate to `http://localhost:3000/`. The application will automatically reload whenever you modify any of the source files.
 
-   ```bash
-   git clone <repository-url>
-   cd bundler
-   ```
+For full functionality, run the API server ([repo here](https://github.com/lovebrew/bundler-api)). This will allow for asset conversion and homebrew binary compilation.
 
-2. Install client dependencies:
+## Building
 
-   ```bash
-   bun install
-   ```
+To build the project run:
 
-3. Build the client:
+```bash
+ng build
+```
 
-   ```bash
-   bun run build
-   ```
-
-4. Run the server ([repo here](https://github.com/lovebrew/bundler-api)):
-   ```bash
-   cd ../bundler-api
-   cargo run
-   ```
-
+This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+   
 ## Contributing
 
 Contributions are welcome! Please submit a pull request or file an issue if you have suggestions or bug reports.

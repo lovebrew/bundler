@@ -1,34 +1,55 @@
-# dependencies (bun install)
-node_modules
+# Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,angular
+# Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,angular
 
-# output
-out
-dist
-*.tgz
+### Angular ###
+## Angular ##
+# compiled output
+dist/
+tmp/
+app/**/*.js
+app/**/*.js.map
 
-# code coverage
-coverage
-*.lcov
+# dependencies
+node_modules/
+bower_components/
 
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+# IDEs and editors
+.idea/
 
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+# misc
+.sass-cache/
+connect.lock/
+coverage/
+libpeerconnection.log/
+npm-debug.log
+testem.log
+typings/
+.angular/
 
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
+# e2e
+e2e/*.js
+e2e/*.map
 
-# IntelliJ based IDEs
-.idea
+# System Files
+.DS_Store/
 
-# Finder (MacOS) folder config
-.DS_Store
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
+.ionide
+
+# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,angular

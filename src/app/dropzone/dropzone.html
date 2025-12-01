@@ -1,0 +1,24 @@
+<div
+  id="dropzone"
+  [class.dragover]="isDragOver"
+  (click)="fileInput.click()"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+>
+  <input
+    id="file-upload"
+    #fileInput
+    hidden
+    multiple
+    (change)="onFilesSelected($event)"
+    type="file"
+    accept=".zip,
+  .png,
+  .jpg,
+  .jpeg,
+  .otf,
+  .ttf,
+  .toml"
+  />
+</div>
