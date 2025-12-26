@@ -19,7 +19,7 @@ export class ApiService {
   constructor(
     private zip: ZipService,
     private db: IndexedDbService,
-  ) {}
+  ) { }
 
   private async fetch(path: string, body?: FormData): Promise<Response> {
     const method = body ? 'POST' : 'GET';
@@ -33,7 +33,7 @@ export class ApiService {
   }
 
   async maintenance(): Promise<boolean> {
-    const response = await fetch('config.json');
+    const response = await fetch('config.json', { cache: 'no-store' });
     const { maintenance } = await response.json();
     return maintenance;
   }
