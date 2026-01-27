@@ -12,7 +12,7 @@ export class UploadService {
   constructor(
     private api: ApiService,
     private zip: ZipService,
-  ) {}
+  ) { }
 
   public async upload(bundles: Bundle[], assets: Asset[]): Promise<Blob> {
     if (bundles.length && assets.length) {
@@ -21,13 +21,14 @@ export class UploadService {
 
     let data = null;
     if (bundles.length) {
-      const promises = bundles.map(async (bundle) => {
-        await bundle.load();
-        const config = bundle.getConfig();
-        if (!config) throw new Error('Bundle config is invalid.');
-        data = await this.api.compile(bundle.files, config, bundle.iconFile);
-      });
-      await Promise.all(promises);
+      const bundle = bundles.at(0);
+      if (bundles.length > 1 || bundle === undefined) {
+        throw new Error("Only one bundle at a time is supported.")
+      }
+      await bundle.load();
+      const config = bundle.getConfig();
+      if (!config) throw new Error('Bundle config is invalid.');
+      data = await this.api.compile(bundle.files, config, bundle.iconFile);
     } else {
       data = await this.api.convert(assets);
     }
