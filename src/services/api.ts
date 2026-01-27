@@ -68,17 +68,24 @@ export class ApiService {
     return result.concat(cached);
   }
 
-  private appendGameData(binary: File, resources: Map<string, Blob>): File {
-    let data: Blob | undefined;
+  private async appendGameData(binary: File, resources: Map<string, File[]>): Promise<File> {
+    let content: File[];
 
-    if (binary.name.endsWith('.3dsx')) {
-      data = resources.get('ctr') ?? resources.get('base');
+    const base = resources.get('base');
+    if (!base) throw new Error("No base files found.");
+    const assets = resources.get('assets');
+    if (!assets) throw new Error("No assets found.");
+    const ctrAssets = resources.get('ctr');
+
+    if (binary.name.endsWith(".3dsx")) {
+      content = ctrAssets ? base.concat(ctrAssets) : base;
     } else {
-      data = resources.get('base');
+      content = base.concat(assets);
     }
 
+    const zip = await this.zip.create(content);
     const filename = binary.name.split('/').pop() ?? binary.name;
-    return data ? new File([binary, data], filename) : binary;
+    return new File([binary, zip], filename);
   }
 
   private async getCompileKey(config: Config, target: Target, icon?: File): Promise<string> {
@@ -86,14 +93,14 @@ export class ApiService {
   }
 
   async compile(files: BundleFiles, config: Config, icon?: File): Promise<Array<File>> {
-    let resources: Map<string, Blob> = new Map();
+    let resources: Map<string, File[]> = new Map();
+
+    resources.set('base', files.source);
+    resources.set('assets', files.assets);
     if (config.hasTarget('ctr') && files.assets.length) {
       const converted = await this.convert(files.assets);
-      const zip = await this.zip.create(converted);
-      resources.set('ctr', zip);
+      resources.set('ctr', converted);
     }
-    const zip = await this.zip.create(files.source.concat(files.assets));
-    resources.set('base', zip);
 
     const cached = new Array<File>();
     const targets = new Array<Target>();
@@ -102,7 +109,7 @@ export class ApiService {
       const key = await this.getCompileKey(config, target, icon);
       const data = await this.db.get(key, `${config.metadata.title}.${extension[target]}`);
       if (data) {
-        cached.push(this.appendGameData(data, resources));
+        cached.push(await this.appendGameData(data, resources));
       } else {
         targets.push(target);
       }
@@ -122,7 +129,7 @@ export class ApiService {
     const result = new Array<File>();
 
     for (const binary of binaries) {
-      result.push(this.appendGameData(binary, resources));
+      result.push(await this.appendGameData(binary, resources));
       const parent = binary.name.split('/').pop()! as Target;
       const key = await this.getCompileKey(config, parent, icon);
       await this.db.set(key, binary, binary.name);

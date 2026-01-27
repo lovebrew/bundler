@@ -49,6 +49,11 @@ export class Bundle {
       const blob = await entry.getData(new BlobWriter());
       const file = new File([blob], entry.filename.replace(prefix, ''));
 
+      // dumb check if someone leaves converted assets in here
+      if (file.name.endsWith(".bcfnt") || file.name.endsWith(".t3x")) {
+        return;
+      }
+
       if (await Asset.isValid(file)) {
         this.assets.push(await Asset.from(file));
       } else {
